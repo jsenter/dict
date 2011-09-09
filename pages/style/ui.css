@@ -1,0 +1,207 @@
+#dict-viclm-simple {
+    font-family: Arial, 'Microsoft Yahei', Simsun, sans-serif;
+    font-size: 12px;
+    line-height: 1.2em;
+    position: absolute;
+    display: inline-block;
+    padding: 4px;
+    z-index: 19860208;
+    border-radius:5px;
+}
+
+#dict-viclm-simple * {
+    position: static;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    z-index: auto;
+
+    float: none;
+    clear: none;
+    display: '';
+
+    margin: 0;
+    padding: 0;
+    border-width: medium;
+    border-color: inherit;
+    border-style: none;
+    width: auto;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    max-width: none;
+    max-height: none;
+
+    color: inherit;
+    background-attachment: scroll;
+    background-color: transparent;
+    background-image: none;
+    background-position: 0% 0%;
+    background-repeat: repeat;
+
+    font-size: 12px;
+    font-family: Arial, 'Microsoft Yahei', Simsun, sans-serif;
+    line-height: normal;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: normal;
+    text-align: left;
+    text-decoration: none;
+    text-indent: 0;
+    text-transform: none;
+    white-space: normal;
+    letter-spacing: normal;
+    word-spacing: normal;
+    vertical-align: baseline;
+    overflow: visible;
+    visibility: visible;
+}
+
+#dict-viclm-simple header {
+    margin-bottom: 1px;
+}
+
+#dict-viclm-simple h1 {
+    font-weight: bold;
+    display: inline;
+}
+
+#dict-viclm-simple header span {
+    margin-left: 3px;
+}
+
+#dict-viclm-simple header canvas {
+    margin-left: 3px;
+    cursor: pointer;
+    vertical-align: center;
+    position: relative;
+    top: 2px;
+}
+
+#dict-viclm-simple ul {
+    list-style-type: none;
+}
+
+/* creates triangle */
+#dict-viclm-simple  div:last-of-type {
+   position:absolute;
+   left:50%;
+   width:0;
+   border-style:solid;
+   background-color: rgba(0,0,0,0);
+}
+
+#dict-viclm-simple div.up:last-of-type {
+   top:-6px;
+   border-width:0 6px 6px;
+}
+
+#dict-viclm-simple div.down:last-of-type {
+   bottom:-6px;
+   border-width:6px 6px 0;
+}
+
+
+
+
+
+#dict-viclm-simple.orange {
+    color:#000;
+    background:#f3961c;
+    background:-webkit-gradient(linear, 0 0, 0 100%, from(#F9D835), to(#F3961C));
+}
+
+#dict-viclm-simple.orange header span{
+    color: #333;
+}
+
+#dict-viclm-simple.orange div.up:last-of-type {
+   border-color:#F9D835 transparent;
+}
+
+#dict-viclm-simple.orange div.down:last-of-type {
+   border-color:#f3961c transparent;
+}
+
+
+
+
+#dict-viclm-simple.blue {
+    color:#fff;
+    background:#075698;
+    background:-webkit-gradient(linear, 0 0, 0 100%, from(#2E88C4), to(#075698));
+}
+
+#dict-viclm-simple.blue header span{
+    color: #ddd;
+}
+
+#dict-viclm-simple.blue div.up:last-of-type {
+   border-color:#2E88C4 transparent;
+}
+
+#dict-viclm-simple.blue div.down:last-of-type {
+   border-color:#075698 transparent;
+}
+
+
+
+
+#dict-viclm-simple.red {
+    color:#fff;
+    background:#C81E2B;
+    background:-webkit-gradient(linear, 0 0, 0 100%, from(#F04349), to(#C81E2B));
+}
+
+
+#dict-viclm-simple.red header span{
+    color: #ddd;
+}
+
+#dict-viclm-simple.red div.up:last-of-type {
+   border-color:#F04349 transparent;
+}
+
+#dict-viclm-simple.red div.down:last-of-type {
+   border-color:#C81E2B transparent;
+}
+
+
+
+
+#dict-viclm-simple.green {
+    color:#000;
+    background:#5A8F00;
+    background:-webkit-gradient(linear, 0 0, 0 100%, from(#B8DB29), to(#5A8F00));
+}
+
+
+#dict-viclm-simple.green header span{
+    color: #333;
+}
+
+#dict-viclm-simple.green div.up:last-of-type {
+   border-color:#B8DB29 transparent;
+}
+
+#dict-viclm-simple.green div.down:last-of-type {
+   border-color:#5A8F00 transparent;
+}
+
+
+
+
+#dict-viclm-simple.black {
+    color:#fff;
+    background:#333;
+}
+
+
+#dict-viclm-simple.black header span{
+    color: #ddd;
+}
+
+#dict-viclm-simple.black div:last-of-type {
+   border-color:#333 transparent;
+}

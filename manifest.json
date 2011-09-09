@@ -1,0 +1,27 @@
+{
+    "name": "词典",
+    "version": "3.0.3",
+    "description": "Chrome下最好用的翻译工具,可取词可划词,支持多词典",
+
+    "icons": {
+        "16": "assets/icon16.png",
+        "48": "assets/icon48.png",
+        "128": "assets/icon128.png"
+    },
+
+    "browser_action": {
+        "default_title": "词典",
+	"default_popup": "pages/popup.html"
+    },
+
+    "background_page": "pages/background.html",
+
+    "permissions": [
+        "tabs",
+        "contextMenus",
+        "*://*/*"
+    ],
+
+    "options_page": "pages/options.html"
+}
+
