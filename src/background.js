@@ -23,7 +23,7 @@
         qqdict: QQDict
     };
 
-    var database, dbRequest = webkitIndexedDB.open('dict'), status, menuItemIdHover, menuItemIdDrag;
+    /*var database, dbRequest = webkitIndexedDB.open('dict'), status, menuItemIdHover, menuItemIdDrag;
 
     dbRequest.onerror = function(e) {
         console.log('indexdb open error');
@@ -46,6 +46,11 @@
             };
         }
     };
+    */
+    var database = openDatabase('dict', '1.0', 'dict database', 5 * 1024 * 1024);
+    database.transaction(function (tx) {
+        tx.executeSql('CREATE TABLE IF NOT EXISTS dict (word text, api text, content text)');
+    });
 
     /*menuItemIdHover = chrome.contextMenus.create({
         title: '查询',
@@ -226,7 +231,7 @@
     }
 
     Query.prototype.query = function () {
-        var objectStore = database.transaction([this.model], webkitIDBTransaction.READ).objectStore(this.model), request;
+        /*var objectStore = database.transaction([this.model], webkitIDBTransaction.READ).objectStore(this.model), request;
         request = objectStore.get(this.word);
         request.addEventListener('success', dom.Tool.proxy(function (e) {
             if (typeof e.target.result === 'undefined') {
@@ -236,12 +241,30 @@
                 this.load(e.target.result);
             }
         }, this), false);
-        request.addEventListener('error', dom.Tool.proxy(this.ajax, this), false);
+        request.addEventListener('error', dom.Tool.proxy(this.ajax, this), false);*/
+        var self = this;
+        database.transaction(function (tx) {
+            tx.executeSql('SELECT * FROM dict WHERE word=? AND api=?', [self.word, self.model], function (tx, result) {
+                if (result.rows.length > 0) {
+                    self.load(JSON.parse(result.rows.item(0).content));console.log(result.rows.item(0))
+                }
+                else {
+                    self.ajax();
+                }
+            }, function () {
+                console.log(arguments);
+                self.ajax();
+            });
+        });
     };
 
     Query.prototype.updateDB = function (data) {
-        var objectStore = database.transaction([this.model], webkitIDBTransaction.WRITE).objectStore(this.model), request;
-        request = objectStore.add(data);
+        //var objectStore = database.transaction([this.model], webkitIDBTransaction.WRITE).objectStore(this.model), request;
+        //request = objectStore.add(data);
+        var self = this;
+        database.transaction(function (tx) {
+            tx.executeSql('INSERT INTO dict VALUES (?,?,?)', [data.key, self.model , JSON.stringify(data)]);
+        }, function(){}, function () {console.log(arguments)});
     };
 
     Query.prototype.ajax = function (word) {
