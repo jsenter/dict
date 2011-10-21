@@ -1,84 +1,21 @@
-var Tool = {
-    extend: function (childCtor, parentCtor) {
+(function (window, document, undefined){
+    this.extend = function (childCtor, parentCtor) {
         function tempCtor() {};
         tempCtor.prototype = parentCtor.prototype;
         childCtor.prototype = new tempCtor();
         childCtor.prototype.super = parentCtor.prototype;
         childCtor.prototype.constructor = childCtor;
-    },
+    }
 
-    proxy: function (fn, obj) {
+    this.proxy = function (fn, obj) {
         return function () {
             return fn.apply(obj, arguments);
         }
-    },
+    }
+})(this, this.document);
 
-    toArray: function (obj) {
-        try {
-            return Array.prototype.slice.call(obj, 0);
-        }
-        catch (e) {
-            this.toArray = function(obj) {
-                var ret = [], i, len;
-                if (typeof obj.length === "number") {
-                    for (i = 0, len = obj.length; i < len; i += 1) {
-                        ret[ret.length] = obj[i];
-                    }
-                } else {
-                    for (i = 0; obj[i]; i += 1) {
-                        ret[ret.length] = obj[i];
-                    }
-                }
+(function (window, document, undefined) {
 
-                return ret;
-            };
-            return this.toArray(obj);
-        }
-    },
-
-    // Simple JavaScript Templating
-    // John Resig - http://ejohn.org/ - MIT Licensed
-    tmpl: (function(){
-      var cache = {};
-
-      return function tmpl(str, data){
-        // Figure out if we're getting a template, or if we need to
-        // load the template - and be sure to cache the result.
-        var fn = !/\W/.test(str) ?
-          cache[str] = cache[str] ||
-            tmpl(document.getElementById(str).innerHTML) :
-
-          // Generate a reusable function that will serve as a template
-          // generator (and which will be cached).
-          new Function("obj",
-            "var p=[],print=function(){p.push.apply(p,arguments);};" +
-
-            // Introduce the data as local variables using with(){}
-            "with(obj){p.push('" +
-
-            // Convert the template into pure JavaScript
-            str
-              .replace(/[\r\t\n]/g, " ")
-              .split("<%").join("\t")
-              .replace(/((^|%>)[^\t]*)'/g, "$1\r")
-              .replace(/\t=(.*?)%>/g, "',$1,'")
-              .split("\t").join("');")
-              .split("%>").join("p.push('")
-              .split("\r").join("\\'")
-          + "');}return p.join('');");
-
-        // Provide some basic currying to the user
-        return data ? fn( data ) : fn;
-      };
-    })()
-};
-
-(function (window, undefined) {
-    /**
-    * Dict
-    * @version 20110602.4
-    *
-    */
     function Dict (args) {
         args = args || {};
         this.scope = args.scope || document.body;
@@ -95,11 +32,11 @@ var Tool = {
         this.rAllWord = /\b[a-z]+([-'][a-z]+)*\b/gmi;
         this.rSingleWord = /^[a-z]+([-'][a-z]+)*$/i;
 
-        this.port.onMessage.addListener(Tool.proxy(function (msg) {
+        this.port.onMessage.addListener(proxy(function (msg) {
             this.show(msg);
         }, this));
 
-        this.hotKey && this.scope.addEventListener('keyup', this.hoverHanlderProxy = Tool.proxy(this.hotKeyHandler, this), false);
+        this.hotKey && this.scope.addEventListener('keyup', this.hoverHanlderProxy = proxy(this.hotKeyHandler, this), false);
         this.dragCapture && this.setDragCapture();
         this.hoverCapture && this.setHoverCapture();
     };
@@ -114,8 +51,8 @@ var Tool = {
             this.dragCapture = false;
         }
         else {
-            this.scope.addEventListener('click', this.dblclickProxy = Tool.proxy(this.dblclick, this), false);
-            this.scope.addEventListener('mousedown', this.dragStartProxy = Tool.proxy(this.dragStart, this), false);
+            this.scope.addEventListener('click', this.dblclickProxy = proxy(this.dblclick, this), false);
+            this.scope.addEventListener('mousedown', this.dragStartProxy = proxy(this.dragStart, this), false);
             this.dragCapture = true;
         }
     };
@@ -129,7 +66,7 @@ var Tool = {
             this.hoverCapture = false;
         }
         else {
-            this.scope.addEventListener('mouseover', this.hoverProxy = Tool.proxy(this.hoverTrigger, this), false);
+            this.scope.addEventListener('mouseover', this.hoverProxy = proxy(this.hoverTrigger, this), false);
             this.hoverCapture = true;
         }
     };
@@ -160,8 +97,8 @@ var Tool = {
     };
 
     Dict.prototype.dragStart = function (e) {
-	document.dictonmouseup = Tool.proxy(this.dragEnd, this);
-	document.addEventListener('mouseup', document.dictonmouseup, false);
+		document.dictonmouseup = proxy(this.dragEnd, this);
+		document.addEventListener('mouseup', document.dictonmouseup, false);
         this.startPos = e.pageX;
         this.endPos = null;
         this.onDrag = true;
@@ -180,13 +117,11 @@ var Tool = {
 
     Dict.prototype.hoverTrigger = function (e) {
 
-        if (this.onDrag) {
-            return;
-        }
+        if (this.onDrag) {return;}
 
-        if (this.assistKey && (e.altKey !== this.assistKey.altKey || e.ctrlKey !== this.assistKey.ctrlKey)) {
-            return;
-        }
+        if (this.assistKey && (e.altKey !== this.assistKey.altKey || e.ctrlKey !== this.assistKey.ctrlKey)) {return;}
+
+		if (e.target.nodeName.toLowerCase() === 'textarea') {return;}
 
         if (this.timer === null) {
             this.hoverHanlder(e);
@@ -196,7 +131,7 @@ var Tool = {
         this.hoverX = e.pageX;
         this.hoverY = e.pageY;
         clearTimeout(this.timer);
-        this.timer = setTimeout(Tool.proxy(function () {
+        this.timer = setTimeout(proxy(function () {
             if (this.hoverX === e.pageX && this.hoverY === e.pageY) {
                 //this.timer = null;
                 this.hoverHanlder(e);
@@ -285,7 +220,7 @@ var Tool = {
         this.uiTriangle = this.ui.querySelector('div:last-of-type');
     }
 
-    Tool.extend(DictSimple, Dict);
+    extend(DictSimple, Dict);
 
     DictSimple.prototype.createUI = function () {
         var aside = document.createElement('aside'), header, uiPronBtn, uiPron, triangle;
@@ -438,4 +373,4 @@ var Tool = {
         }
     });
 
-})(window);
+})(this, this.document);

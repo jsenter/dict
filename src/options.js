@@ -228,34 +228,3 @@
 
     document.addEventListener('DOMContentLoaded', init, false);
 })();
-
-
-    /*
-    //highlight dict <li> when clicked
-    function dictsHighlight() {
-        if (!dictsHighlight.last || dictsHighlight.last !== this.id) {
-            this.className = 'selected';
-            dictsHighlight.last && (document.getElementById(dictsHighlight.last).className = '');
-            dictsHighlight.last = this.id;
-        }
-    }
-
-    //rerange dicts list by clicking arrow
-    function dictsRerange() {
-        if (dictsHighlight.last) {
-            var highlight = document.getElementById(dictsHighlight.last), parent = highlight.parentNode, relate;
-            if (this.alt === 'up') {
-                relate = dom.Query.prev(highlight);
-                if (relate) {
-                    parent.insertBefore(highlight, relate);
-                }
-            }
-            else {
-                relate = dom.Query.next(highlight);
-                if (relate) {
-                    parent.insertBefore(relate, highlight);
-                }
-            }
-        }
-    }
-    */

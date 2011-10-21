@@ -1,4 +1,20 @@
-﻿(function () {
+﻿(function (window, document, undefined){
+    this.extend = function (childCtor, parentCtor) {
+        function tempCtor() {};
+        tempCtor.prototype = parentCtor.prototype;
+        childCtor.prototype = new tempCtor();
+        childCtor.prototype.super = parentCtor.prototype;
+        childCtor.prototype.constructor = childCtor;
+    }
+
+    this.proxy = function (fn, obj) {
+        return function () {
+            return fn.apply(obj, arguments);
+        }
+    }
+})(this, this.document);
+
+(function () {
     localStorage.skin || (localStorage.skin = 'orange');
     localStorage.hotKeySwitch || (localStorage.hotKeySwitch = '1');
     localStorage.assistKey || (localStorage.assistKey = 'none');
@@ -23,39 +39,10 @@
         qqdict: QQDict
     };
 
-    /*var database, dbRequest = webkitIndexedDB.open('dict'), status, menuItemIdHover, menuItemIdDrag;
-
-    dbRequest.onerror = function(e) {
-        console.log('indexdb open error');
-    };
-
-    dbRequest.onsuccess = function(e) {
-        database = e.target.result;
-        if (database.version != '1.1') {
-            var request = database.setVersion("1.1");
-
-            request.onerror = function (event) {
-                console.log('setVersion error');
-            };
-
-            request.onsuccess = function (e) {
-                var powerword, dictcn, qqdict;
-                powerword = database.createObjectStore('powerword', {keyPath: 'key'});
-                dictcn = database.createObjectStore('dictcn', {keyPath: 'key'});
-                qqdict = database.createObjectStore('qqdict', {keyPath: 'key'});
-            };
-        }
-    };
-    */
     var database = openDatabase('dict', '1.0', 'dict database', 5 * 1024 * 1024);
     database.transaction(function (tx) {
         tx.executeSql('CREATE TABLE IF NOT EXISTS dict (word text, api text, content text)');
     });
-
-    /*menuItemIdHover = chrome.contextMenus.create({
-        title: '查询',
-        onclick: contextMenusHanlder
-    });*/
 
     setPageActionIcon(localStorage.status === '1');
     chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
@@ -64,18 +51,6 @@
             chrome.tabs.executeScript(tabId, {file: "src/dict.js"});
         }
     });
-
-    /*
-    chrome.tabs.onSelectionChanged.addListener(function (tabId, selectInfo) {
-        setPageActionIcon(false);
-        chrome.tabs.sendRequest(tabId, {
-            cmd: 'setCaptureMode',
-            dragCapture: localStorage.dragCapture === '1' ? true : false,
-            hoverCapture: localStorage.hoverCapture === '1' ? true : false
-        }, function () {
-            setPageActionIcon(true);
-        });
-    });*/
 
     function contextMenusHanlder(info, tab) {
         var cmd = localStorage.status === '1' ? 'toggleHoverCapture' : 'toggleDragCapture';
@@ -231,22 +206,11 @@
     }
 
     Query.prototype.query = function () {
-        /*var objectStore = database.transaction([this.model], webkitIDBTransaction.READ).objectStore(this.model), request;
-        request = objectStore.get(this.word);
-        request.addEventListener('success', dom.Tool.proxy(function (e) {
-            if (typeof e.target.result === 'undefined') {
-                this.ajax();
-            }
-            else {
-                this.load(e.target.result);
-            }
-        }, this), false);
-        request.addEventListener('error', dom.Tool.proxy(this.ajax, this), false);*/
         var self = this;
         database.transaction(function (tx) {
             tx.executeSql('SELECT * FROM dict WHERE word=? AND api=?', [self.word, self.model], function (tx, result) {
                 if (result.rows.length > 0) {
-                    self.load(JSON.parse(result.rows.item(0).content));console.log(result.rows.item(0))
+                    self.load(JSON.parse(result.rows.item(0).content));
                 }
                 else {
                     self.ajax();
@@ -259,19 +223,22 @@
     };
 
     Query.prototype.updateDB = function (data) {
-        //var objectStore = database.transaction([this.model], webkitIDBTransaction.WRITE).objectStore(this.model), request;
-        //request = objectStore.add(data);
         var self = this;
         database.transaction(function (tx) {
             tx.executeSql('INSERT INTO dict VALUES (?,?,?)', [data.key, self.model , JSON.stringify(data)]);
-        }, function(){}, function () {console.log(arguments)});
+        }, function(){}, function (tx, e) {
+			console.log(arguments)
+			if (e.code === 4) {
+				tx.executeSql('DELETE FROM dict', []);
+			}
+		});
     };
 
     Query.prototype.ajax = function (word) {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', this.api + this.word, true);
-        xhr.addEventListener('load', dom.Tool.proxy(this.ajaxLoad, this), false);
-        xhr.addEventListener('error', dom.Tool.proxy(this.ajaxError, this), false);
+        xhr.addEventListener('load', proxy(this.ajaxLoad, this), false);
+        xhr.addEventListener('error', proxy(this.ajaxError, this), false);
         xhr.send(null);
     };
 
@@ -294,7 +261,7 @@
         this.super.constructor.call(this, args);
     }
 
-    dom.Tool.extend(Powerword, Query);
+    extend(Powerword, Query);
 
     Powerword.prototype.ajaxLoad = function (e) {
         var xml = e.target.responseXML, json = {}, elems, elem, i, len, item;
@@ -335,7 +302,7 @@
         this.super.constructor.call(this, args);
     }
 
-    dom.Tool.extend(Dictcn, Query);
+    extend(Dictcn, Query);
 
     Dictcn.prototype.ajaxLoad = function (e) {
         var xml = e.target.responseText, json = {}, elems, elem, i, len, item, parser, reg = /[a-z]\..+?(?=[a-z]\.|$)/gm;
@@ -383,7 +350,7 @@
         this.super.constructor.call(this, args);
     }
 
-    dom.Tool.extend(QQDict, Query);
+    extend(QQDict, Query);
 
     QQDict.prototype.ajaxLoad = function (e) {
         var xml = eval('(' + e.target.responseText + ')'), json = {}, elems, elem, i, len, item;
