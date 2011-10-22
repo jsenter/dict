@@ -3,7 +3,7 @@
 
     function init() {
         mainview = document.getElementById('mainview');
-        dicts = document.getElementById('hoverSection');
+        dicts = document.getElementById('dictSection');
 
         uiEnhance();
         restoreOptions();
@@ -27,7 +27,7 @@
             elements[i].addEventListener('click', checkSwitchClickHanlder, false);
         }
         //dict
-        elements = mainview.querySelectorAll('#hoverSection select');
+        elements = mainview.querySelectorAll('#dictSection select');
         for (i = 0, len = elements.length ; i < len ; i += 1) {
             elements[i].addEventListener('change', setDict, false);
         }
@@ -198,7 +198,7 @@
             checkSwitch(elem, elem.parentNode.parentNode.parentNode.querySelectorAll('input[type=text]'));
         }
 
-        elements = mainview.querySelectorAll('#hoverSection select');
+        elements = mainview.querySelectorAll('#dictSection select');
         for (i = 0, len = elements.length ; i < len ; i += 1) {
             elem = elements[i];
             elem.querySelector('option[value=' + localStorage[elem.name] + ']').selected = true;

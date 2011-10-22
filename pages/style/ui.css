@@ -7,6 +7,7 @@
     padding: 4px;
     z-index: 19860208;
     border-radius:5px;
+    max-width: 350px;
 }
 
 #dict-viclm-simple * {

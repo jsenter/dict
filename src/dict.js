@@ -16,6 +16,8 @@
 
 (function (window, document, undefined) {
 
+    if (window.viclmChromeDictForGina) {return}
+
     function Dict (args) {
         args = args || {};
         this.scope = args.scope || document.body;
@@ -185,7 +187,7 @@
     Dict.prototype.capture = function (e) {
         this.node = null;
         this.text = window.getSelection().toString();
-        this.text = this.text.trim().replace(/^\W+$/, '').replace(/^\d+$/, '');
+        this.text = this.text.trim()//.replace(/^\W+$/, '').replace(/^\d+$/, '');
         if (this.text.length > 0) {
             this.x = e.pageX - (!this.endPos ? 0 : (this.endPos - this.startPos) / 2);
             this.y = e.pageY;
@@ -194,7 +196,7 @@
         }
     };
 
-    Dict.prototype.handle = function (e) {
+    Dict.prototype.handle = function (e, type) {
         var data = {};
         if (this.text.length > 0) {
             data['cmd'] = 'query';
@@ -291,17 +293,25 @@
     DictSimple.prototype.show = function (data) {
         var i, len, item, ul, li;
         if (data.key === this.text && 'tt' in data) {
-            this.uiKey.innerHTML = this.text;
-            this.uiPs.innerHTML = data.ps === '' ? '' : '[' + data.ps + ']';
-            this.uiPron.src = data.pron;
-            this.uiPronBtn.style.display = data.pron === '' ?  'none' : '';
-            this.uiTrans.innerHTML = '';
+            if (data.type === 'translate') {
+                this.uiKey.parentNode.style.display = 'none';
+                this.uiTrans.innerHTML = data.tt;
+            }
+            else {
+                this.uiKey.parentNode.style.display = 'block';
+                this.uiKey.innerHTML = this.text;
+                this.uiPs.innerHTML = data.ps === '' ? '' : '[' + data.ps + ']';
+                this.uiPron.src = data.pron;
+                this.uiPronBtn.style.display = data.pron === '' ?  'none' : '';
+                this.uiTrans.innerHTML = '';
 
-            for (i = 0, len = data.tt.length ; i < len ; i += 1) {
-                item = data.tt[i];
-                li = document.createElement('li');
-                li.innerHTML = item.pos + ' ' + item.acceptation;
-                this.uiTrans.appendChild(li);
+                for (i = 0, len = data.tt.length ; i < len ; i += 1) {
+                    item = data.tt[i];
+                    li = document.createElement('li');
+                    li.innerHTML = item.pos + ' ' + item.acceptation;
+                    this.uiTrans.appendChild(li);
+                }
+
             }
 
             this.ui.style.display = '';
@@ -364,6 +374,7 @@
             hoverCapture: response.hoverCapture,
             dragCapture: response.dragCapture
         });
+        window.viclmChromeDictForGina = true;
     });
 
     chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
