@@ -1,8 +1,42 @@
 (function () {
-    var port = chrome.extension.connect({name: 'dict'}), btnHover, btnDrag, searchbox, content, nav;
-    btnHover = document.getElementById('hover');
-    btnDrag = document.getElementById('drag');
-    content = document.querySelector('section');
+	this.delegate = function (node, selector, type, handler) {
+        node.delegate || (node.delegate = {});
+        node.delegate[selector] = {handler: handler};
+        this.delegate.nodeList || (this.delegate.nodeList = []);
+        if (this.delegate.nodeList.indexOf(node) === -1) {
+            node.addEventListener(type, function (e) {
+                var target = e.target, key, tmp;
+                do {
+                    for (key in node.delegate) {
+                        tmp = node.delegate[key];
+                        if (Array.prototype.indexOf.call(node.querySelectorAll(key), target) > -1) {
+                            delete e.target;
+                            e.target = target;
+                            tmp.handler.call(target, e);
+                            return;
+                        }
+                    }
+                    target = target.parentNode;
+                }
+                while (target && target !== this);
+            }, false);
+            this.delegate.nodeList.push(node);
+        }
+    };
+
+})();
+
+(function () {
+    var port = chrome.extension.connect({name: 'dict'}),
+		searchbox = document.querySelector('textarea'),
+		navDict = document.getElementById('dict'),
+		navTranslate = document.getElementById('translate'),
+		content = document.querySelector('section'),
+		btnHover = document.getElementById('hover'),
+		btnDrag = document.getElementById('drag'),
+		rSingleWord = /^[a-z]+([-'][a-z]+)*$/i,
+		nav;
+
     port.postMessage({cmd: 'getCaptureMode'});
     port.onMessage.addListener(function (msg) {
         if (msg.cmd === 'setCaptureMode') {
@@ -82,31 +116,52 @@
 
     function setCaptureMode() {
         this.className = this.className === '' ? 'active' : '';
-        //console.log({cmd: 'setCaptureMode', dragCapture: btnDrag.className === 'active', hoverCapture: btnHover.className === 'active'})
         port.postMessage({cmd: 'setCaptureMode', dragCapture: btnDrag.className === 'active', hoverCapture: btnHover.className === 'active'});
     }
     btnHover.addEventListener('click', setCaptureMode, false);
     btnDrag.addEventListener('click', setCaptureMode, false);
 
 
-    searchbox = document.querySelector('input');
-    searchbox.addEventListener('keyup', function (e) {
-        if (e.keyCode === 13 && this.value.trim().length > 0) {
-            port.postMessage({cmd: 'query', w: this.value.trim(), dict: localStorage.mainDict});
-            e.preventDefault();
-        }
-    }, false);
-    searchbox.addEventListener('input', function (e) {
-        if (this.value.trim() === '') {
-            content.innerHTML = '<h1>键入要查找的词语…</h1>';
-        }
-    }, false);
+	searchbox.addEventListener('input', function (e) {
+		var diff = this.scrollHeight - this.offsetHeight, r, p, key;
+		if (diff) {
+			r = this.value.match(/\n/g);
+			if (r) {
+				p = r.length;
+			}
+			else {
+				p = 0;
+			}
+			this.style.height = 28 + 18 * p + 'px';
+		}
+
+		key = this.value.trim();
+
+		if (rSingleWord.test(key)) {
+			dict.className = '';
+			translate.className = 'disabled';
+		}
+		else {
+			dict.className = 'disabled';
+			translate.className = '';
+		}
+
+		if (key.length > 0) {
+			setTimeout(function () {
+				if (e.target.value.trim() === key) {console.log(document.querySelector('nav div[class!=disabled] a[class=active]'))
+					//port.postMessage({cmd: 'query', w: key, dict: document.querySelector('nav div[class] a[class=active]')});
+				}
+			}, 1000);
+		}
+		else {
+			content.innerHTML = '<h1>输入就可以</h1>';
+		}
+	}, false);
 
     function dictSwitch(e) {
+		if (this.parentNode.className === 'disabled') {return false;}
         if (this.className === '') {
-            for (var i = 0, len =  nav.length ; i < len ; i += 1) {
-                nav[i].className = '';
-            }
+            this.parentNode.querySelector('[class=active]').className = '';
             this.className = 'active';
             if (searchbox.value.trim().length > 0) {
                 port.postMessage({cmd: 'query', w: searchbox.value.trim(), dict: this.rel});
@@ -114,10 +169,18 @@
         }
         e.preventDefault();
     }
-    nav = document.querySelectorAll('nav a');
+    nav = dict.querySelectorAll('a');
     for (var i = 0, len =  nav.length ; i < len ; i += 1) {
         nav[i].addEventListener('click', dictSwitch, false);
         if (nav[i].rel === localStorage.mainDict) {
+            nav[i].className = 'active';
+        }
+    }
+
+	nav = translate.querySelectorAll('a');
+    for (var i = 0, len =  nav.length ; i < len ; i += 1) {
+        nav[i].addEventListener('click', dictSwitch, false);
+        if (nav[i].rel === localStorage.translate) {
             nav[i].className = 'active';
         }
     }
