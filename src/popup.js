@@ -41,25 +41,30 @@
     port.onMessage.addListener(function (msg) {
         if (msg.cmd === 'setCaptureMode') {
             if (msg.dragCapture) {
-                btnDrag.className = 'active';
+                btnDrag.style.backgroundImage = 'url(../../assets/green.png)';
             }
            else {
-                btnDrag.className = '';
+                btnDrag.style.backgroundImage = 'url(../../assets/red.png)';
             }
 
             if (msg.hoverCapture) {
-                btnHover.className = 'active';
+                btnHover.style.backgroundImage = 'url(../../assets/green.png)';
             }
             else {
-                btnHover.className = '';
+                btnHover.style.backgroundImage = 'url(../../assets/red.png)';
             }
         }
         else if (msg.key === searchbox.value.trim()) {
+			if (msg.type === 'translate') {
+				content.innerHTML = msg.tt;
+			}
+			else {
             content.innerHTML = tmpl(msg);
             var pron = content.querySelector('img');
             pron && pron.addEventListener('click', function () {
                 this.nextSibling.play();
             }, false);
+			}
         }
     });
 
@@ -120,19 +125,13 @@
     }
     btnHover.addEventListener('click', setCaptureMode, false);
     btnDrag.addEventListener('click', setCaptureMode, false);
-
-
+	
+	searchbox.focus();
 	searchbox.addEventListener('input', function (e) {
 		var diff = this.scrollHeight - this.offsetHeight, r, p, key;
 		if (diff) {
-			r = this.value.match(/\n/g);
-			if (r) {
-				p = r.length;
-			}
-			else {
-				p = 0;
-			}
-			this.style.height = 28 + 18 * p + 'px';
+			this.style.height = 'auto';
+			this.style.height = this.scrollHeight + 'px';
 		}
 
 		key = this.value.trim();
@@ -148,20 +147,22 @@
 
 		if (key.length > 0) {
 			setTimeout(function () {
-				if (e.target.value.trim() === key) {console.log(document.querySelector('nav div[class!=disabled] a[class=active]'))
-					//port.postMessage({cmd: 'query', w: key, dict: document.querySelector('nav div[class] a[class=active]')});
+				if (e.target.value.trim() === key) {
+					content.innerHTML = '<h1>翻译中...</h1>';
+					port.postMessage({cmd: 'query', w: key, dict: document.querySelector('nav div:not(.disabled) .active').rel});
 				}
 			}, 1000);
 		}
 		else {
-			content.innerHTML = '<h1>输入就可以</h1>';
+			content.innerHTML = '<h1>等待输入...</h1>';
+			this.style.height = '28px';
 		}
 	}, false);
 
     function dictSwitch(e) {
 		if (this.parentNode.className === 'disabled') {return false;}
         if (this.className === '') {
-            this.parentNode.querySelector('[class=active]').className = '';
+            this.parentNode.querySelector('.active').className = '';
             this.className = 'active';
             if (searchbox.value.trim().length > 0) {
                 port.postMessage({cmd: 'query', w: searchbox.value.trim(), dict: this.rel});

@@ -216,7 +216,7 @@
             }
         }
         else {
-            TRANSLATE_QUERY[localStorage.translate](
+            TRANSLATE_QUERY[dict || localStorage.translate](
                 msg.w,
                 function (json) {
                     port.postMessage(json);
@@ -451,7 +451,7 @@
             function (result, e) {
                 var json = {key: word, type: 'translate'};
                 result = JSON.parse(result);
-                if (result.data.length) {
+                if (result.data && result.data.length) {
                     json.tt = result.data[0].dst
                     success(json);
                 }
