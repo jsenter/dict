@@ -319,7 +319,7 @@
         }
     };
 
-    DictSimple.prototype.position = function () {
+    DictSimple.prototype.position = function () {//window.getSelection().getRangeAt(0).getBoundingClientRect()
         this.ui.style.left = 0 + 'px';
         this.ui.style.top = 0 + 'px';
         var left, top, triangleLeft, triangleClass, clientRectForUI, clientRectForNode;
@@ -333,6 +333,7 @@
             top = this.y - clientRectForUI.height;
         }
         else {
+			clientRectForNode = window.getSelection().getRangeAt(0).getBoundingClientRect();
             left = this.x - clientRectForUI.width / 2;
             top = this.y - clientRectForUI.height - 6 - this.fontSize / 2;
         }
