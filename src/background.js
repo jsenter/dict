@@ -24,7 +24,7 @@
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         }
         xhr.addEventListener('load', function (e) {
-            success(xhr.responseText, e);
+            success(e);
         }, false);
         xhr.addEventListener('error', error, false);
         xhr.send(data);//encodeURIComponent
@@ -40,24 +40,14 @@
     localStorage.mainDict || (localStorage.mainDict = 'powerword');
     localStorage.assistDict || (localStorage.assistDict = 'dictcn');
     localStorage.translate || (localStorage.translate = 'powerword');
-    localStorage.hoverCapture || (localStorage.hoverCapture = '1');
+    localStorage.hoverCapture || (localStorage.hoverCapture = '0');
     localStorage.dragCapture || (localStorage.dragCapture = '1');
     localStorage.status || (localStorage.status = '1');
     localStorage.speed || (localStorage.speed = '50');
 
-    const DICT_API = {
-        powerword: 'http://dict-co.iciba.com/api/dictionary.php?w=',
-        dictcn: 'http://dict.cn/ws.php?utf8=true&q=',
-        qqdict: 'http://dict.qq.com/dict?q='
-    };
-
-    const TRANSLATE_API = {
-        powerword: 'http://fy.iciba.com/interface.php',
-        baidu: 'http://fanyi.baidu.com/transcontent'
-    };
-
     const DICT_QUERY = {
         powerword: Powerword,
+        bing: Bing,
         dictcn: Dictcn,
         qqdict: QQDict
     };
@@ -70,10 +60,13 @@
 
     var database = openDatabase('dict', '1.0', 'dict database', 5 * 1024 * 1024);
     database.transaction(function (tx) {
-        tx.executeSql('CREATE TABLE IF NOT EXISTS dict (word text, api text, content text)');
+        tx.executeSql('DROP TABLE IF EXISTS dict')
+        tx.executeSql('CREATE TABLE IF NOT EXISTS dicty (word text, api text, content text, PRIMARY KEY (word, api))');
+    }, function (err) {
+        console.log(err)
     });
 
-    setPageActionIcon(localStorage.status === '1');
+    setPageActionIcon(true);/*
     chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
         if (tab.status !== 'complete' && !/^chrome/.test(tab.url) && tab.url.indexOf('https://chrome.google.com/webstore') === -1) {
             chrome.tabs.insertCSS(tabId, {file: 'pages/style/ui.css'});
@@ -88,7 +81,7 @@
                 toggle(response, tab.id);
             });
         });
-    }
+    }*/
 
     function setPageActionIcon(status) {
         var ico, hoverCapture = localStorage.hoverCapture, dragCapture = localStorage.dragCapture;
@@ -184,7 +177,7 @@
                     status = 'complete';
                     port.postMessage(json);
                 },
-                error: function (word) {
+                error: function () {
                     if (dict) {
                         port.postMessage({key: msg.w});
                     }
@@ -206,7 +199,7 @@
                         }
                         assistRes = json;
                     },
-                    error: function (word) {
+                    error: function () {
                         if (status === 'error') {
                             port.postMessage({key: msg.w});
                         }
@@ -228,30 +221,30 @@
         }
     }
 
-    /*
-    * Query
-    */
 
     function Query(args) {
         args = args || {};
         this.word = args.word;
         this.load = args.load;
         this.error = args.error;
+
+        this.res = {};
+        this.res.key = this.word;
     }
 
     Query.prototype.query = function () {
         var self = this;
         database.transaction(function (tx) {
-            tx.executeSql('SELECT * FROM dict WHERE word=? AND api=?', [self.word, self.model], function (tx, result) {
+            tx.executeSql('SELECT * FROM dicty WHERE word=? AND api=?', [self.word, self.model], function (tx, result) {
                 if (result.rows.length > 0) {
                     self.load(JSON.parse(result.rows.item(0).content));
                 }
                 else {
-                    self.ajax();
+                    ajax(self.type, self.api, self.data, proxy(self.ajaxLoad, self), proxy(self.error, self));
                 }
-            }, function () {
+            }, function (tx, err) {
                 console.log(arguments);
-                self.ajax();
+                ajax(self.type, self.api, self.data, proxy(self.ajaxLoad, self), proxy(self.error, self));
             });
         });
     };
@@ -259,29 +252,23 @@
     Query.prototype.updateDB = function (data) {
         var self = this;
         database.transaction(function (tx) {
-            tx.executeSql('INSERT INTO dict VALUES (?,?,?)', [data.key, self.model , JSON.stringify(data)]);
-        }, function (tx, e) {
-			console.log(arguments)
-			if (e.code === 4) {
-				tx.executeSql('DELETE FROM dict', []);
-			}
-		});
-    };
-
-    Query.prototype.ajax = function (word) {
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', this.api + this.word, true);
-        xhr.addEventListener('load', proxy(this.ajaxLoad, this), false);
-        xhr.addEventListener('error', proxy(this.ajaxError, this), false);
-        xhr.send(null);
+            tx.executeSql('INSERT INTO dicty VALUES (?,?,?)', [data.key, self.model , JSON.stringify(data)]);
+        }, function (err) {
+            console.log(arguments)
+            if (err.code === 4) {
+                tx.executeSql('DELETE FROM dict', []);
+            }
+        });
     };
 
     Query.prototype.ajaxLoad = function (e) {
-        //override
-    };
-
-    Query.prototype.ajaxError = function (e) {
-        this.error(this.word);
+        if (this.res.tt && this.res.tt.length > 0) {
+            this.load(this.res);
+            this.updateDB(this.res);
+        }
+        else {
+            this.error();
+        }
     };
 
 
@@ -289,17 +276,18 @@
 
     function Powerword(args) {
 
-        this.api = DICT_API.powerword;
-        this.model = 'powerword';
-
         this.super.constructor.call(this, args);
+
+        this.api = 'http://dict-co.iciba.com/api/dictionary.php';
+        this.type = 'get';
+        this.data = 'w=' + this.word;
+        this.model = 'powerword';
     }
 
     extend(Powerword, Query);
 
     Powerword.prototype.ajaxLoad = function (e) {
-        var xml = e.target.responseXML, json = {}, elems, elem, i, len, item;
-        json.key = this.word;
+        var xml = e.target.responseXML, json = this.res, elems, elem, i, len, item;
         if (xml) {
             elems = xml.getElementsByTagName('ps')[0];
             json.ps = elems ? elems.firstChild.nodeValue : '';
@@ -319,27 +307,24 @@
             }
         }
 
-        if (json.tt && json.tt.length > 0) {
-            this.load(json);
-            this.updateDB(json);
-        }
-        else {
-            this.ajaxError();
-        }
+        this.super.ajaxLoad.call(this, e);
     };
 
 
     function Dictcn(args) {
 
-        this.api = DICT_API.dictcn;
-        this.model = 'dictcn';
         this.super.constructor.call(this, args);
+
+        this.api = 'http://dict.cn/ws.php';
+        this.type = 'get';
+        this.data = 'utf8=true&q=' + this.word;
+        this.model = 'dictcn';
     }
 
     extend(Dictcn, Query);
 
     Dictcn.prototype.ajaxLoad = function (e) {
-        var xml = e.target.responseText, json = {}, elems, elem, i, len, item, parser, reg = /[a-z]\..+?(?=[a-z]\.|$)/gm;
+        var xml = e.target.responseText, json = this.res, elems, elem, i, len, item, parser, reg = /[a-z]\..+?(?=[a-z]\.|$)/gm;
         if (xml) {
             parser = new DOMParser();
             xml = parser.parseFromString(xml,"text/xml");
@@ -366,28 +351,24 @@
             }
         }
 
-        if (json.tt && json.tt.length > 0) {
-            json.key = this.word;
-            this.load(json);
-            this.updateDB(json);
-        }
-        else {
-            this.ajaxError();
-        }
+        this.super.ajaxLoad.call(this, e);
     };
 
 
     function QQDict(args) {
 
-        this.api = DICT_API.qqdict;
-        this.model = 'qqdict';
         this.super.constructor.call(this, args);
+
+        this.api = 'http://dict.qq.com/dict';
+        this.type = 'get';
+        this.data = 'q=' + this.word;
+        this.model = 'qqdict';
     }
 
     extend(QQDict, Query);
 
     QQDict.prototype.ajaxLoad = function (e) {
-        var xml = eval('(' + e.target.responseText + ')'), json = {}, elems, elem, i, len, item;
+        var xml = eval('(' + e.target.responseText + ')'), json = this.res, elems, elem, i, len, item;
         if (xml.local) {
             xml = xml.local[0];
             json.ps = xml.pho ? xml.pho[0] : '';
@@ -407,15 +388,57 @@
             }
         }
 
-        if (json.tt && json.tt.length > 0) {
-            json.key = this.word;
-            this.load(json);
-            this.updateDB(json);
-        }
-        else {
-            this.ajaxError();
-        }
+        this.super.ajaxLoad.call(this, e);
     };
+
+
+    function Bing(args) {
+
+        this.super.constructor.call(this, args);
+
+        this.api = 'http://dict.bing.com.cn/io.aspx';
+        this.type = 'post';
+        this.data = 't=dict&ut=default&ulang=ZH-CN&tlang=EN-US&q=' + this.word;
+        this.model = 'bing';
+    }
+
+    extend(Bing, Query);
+
+    Bing.prototype.ajaxLoad = function (e) {
+        var xml = JSON.parse(e.target.responseText).ROOT, json = this.res, elems, elem, i, len, j, jLen, item, t;
+        if (xml.DEF) {
+            json.ps = xml.PROS.PRO ? (xml.PROS.PRO.length ? xml.PROS.PRO[0].$ : xml.PROS.PRO.$) : '';
+
+            json.pron = xml.AH ? 'http://media.engkoo.com:8129/en-us/' + xml.AH.$ + '.mp3' : '';
+
+            json.tt = [];
+            elems = xml.DEF[0].SENS;
+            if (elems) {
+                if (!elems.length) {elems = [elems]}
+                for (i = 0, len = elems.length ; i < len ; i += 1) {
+                    item = elems[i];
+                    if (item.SEN.length) {
+                        t = [];
+                        for (j = 0, jLen = item.SEN.length ; j < jLen ; j += 1) {
+                            t.push(item.SEN[j].D.$);
+                        }
+                        t = t.join(',')
+                    }
+                    else {
+                        t = item.SEN.D.$;
+                    }
+
+                    json.tt.push({
+                        pos: item.$POS,
+                        acceptation: t
+                    });
+                }
+            }
+        }
+
+        this.super.ajaxLoad.call(this, e);
+    };
+
 
 
 
@@ -425,8 +448,8 @@
             'POST',
             'http://fy.iciba.com/interface.php',
             't=auto&content=' + encodeURIComponent(word),
-            function (result, e) {
-                var json = {key: word, type: 'translate'};
+            function (e) {
+                var json = {key: word, type: 'translate'}, result = e.target.responseText;
                 if (result) {
                     json.tt = result;
                     success(json);
@@ -448,8 +471,8 @@
             'POST',
             'http://fanyi.baidu.com/transcontent',
             'ie=utf-8&source=txt&t=1319299803844&token=6676e72ea0f1a94a7dc95c52a4c46761&from=auto&to=auto&query=' + encodeURIComponent(word),
-            function (result, e) {
-                var json = {key: word, type: 'translate'};
+            function (e) {
+                var json = {key: word, type: 'translate'}, result = e.target.responseText;
                 result = JSON.parse(result);
                 if (result.data && result.data.length) {
                     json.tt = result.data[0].dst
@@ -471,8 +494,8 @@
             'POST',
             'http://fanyi.youdao.com/translate?smartresult=dict&smartresult=rule&smartresult=ugc&sessionFrom=http://dict.youdao.com/',
             'type=AUTO&doctype=json&xmlVersion=1.4&keyfrom=fanyi.web&ue=UTF-8&typoResult=true&flag=false&i=' + encodeURIComponent(word),
-            function (result, e) {
-                var json = {key: word, type: 'translate'}, i, len, item;
+            function (e) {
+                var json = {key: word, type: 'translate'}, result = e.target.responseText, i, len, item;
                 result = JSON.parse(result);
                 if (result.translateResult.length) {
                     json.tt = '';

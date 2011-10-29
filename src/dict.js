@@ -1,5 +1,6 @@
-(function (window, document, undefined){
-    this.extend = function (childCtor, parentCtor) {
+(function (window, document, undefined) {
+
+    var extend = function (childCtor, parentCtor) {
         function tempCtor() {};
         tempCtor.prototype = parentCtor.prototype;
         childCtor.prototype = new tempCtor();
@@ -7,14 +8,11 @@
         childCtor.prototype.constructor = childCtor;
     }
 
-    this.proxy = function (fn, obj) {
+    var proxy = function (fn, obj) {
         return function () {
             return fn.apply(obj, arguments);
         }
     }
-})(this, this.document);
-
-(function (window, document, undefined) {
 
     if (window.viclmChromeDictForGina) {return}
 
@@ -157,11 +155,11 @@
                 }
                 else if (this.rHasWord.test(text)) {
                     text = text.replace(this.rAllWord, function (str) {
-                        return '<bdo>' + str + '</bdo>';
+                        return '<z>' + str + '</z>';
                     });
                     this.timer = null;
                     parent.innerHTML = text;
-                    elems = parent.getElementsByTagName('bdo');
+                    elems = parent.getElementsByTagName('z');
                     for (i = 0, len = elems.length ; i < len ; i += 1) {
                         elems[i].resolve = true;
                     }
@@ -174,7 +172,7 @@
             for (i = 0, len = elems.length ; i < len ; i += 1) {
                 elem = elems[i];
                 if (elem.nodeType === 3 && this.rHasWord.test(elem.nodeValue)) {
-                    wraper = document.createElement('bdo');
+                    wraper = document.createElement('z');
                     parent.insertBefore(wraper, elem);
                     wraper.appendChild(elem);
                 }
@@ -189,9 +187,9 @@
         this.text = window.getSelection().toString();
         this.text = this.text.trim()//.replace(/^\W+$/, '').replace(/^\d+$/, '');
         if (this.text.length > 0) {
-            this.x = e.pageX - (!this.endPos ? 0 : (this.endPos - this.startPos) / 2);
-            this.y = e.pageY;
-            this.fontSize = parseInt(getComputedStyle(e.target, null).getPropertyValue('font-size'), 10) * 1.2;
+            //this.x = e.pageX - (!this.endPos ? 0 : (this.endPos - this.startPos) / 2);
+            //this.y = e.pageY;
+            //this.fontSize = parseInt(getComputedStyle(e.target, null).getPropertyValue('font-size'), 10) * 1.2;
             this.handle(e);
         }
     };
@@ -319,7 +317,7 @@
         }
     };
 
-    DictSimple.prototype.position = function () {//window.getSelection().getRangeAt(0).getBoundingClientRect()
+    DictSimple.prototype.position = function () {
         this.ui.style.left = 0 + 'px';
         this.ui.style.top = 0 + 'px';
         var left, top, triangleLeft, triangleClass, clientRectForUI, clientRectForNode;
@@ -327,20 +325,19 @@
 
         if (this.node) {
             clientRectForNode = this.node.getBoundingClientRect();
-            this.x = clientRectForNode.left + document.body.scrollLeft;
-            this.y = clientRectForNode.top + document.body.scrollTop;
-            left = this.x - (clientRectForUI.width  - clientRectForNode.width) / 2;
-            top = this.y - clientRectForUI.height;
         }
         else {
 			clientRectForNode = window.getSelection().getRangeAt(0).getBoundingClientRect();
-            left = this.x - clientRectForUI.width / 2;
-            top = this.y - clientRectForUI.height - 6 - this.fontSize / 2;
         }
+
+        this.x = clientRectForNode.left + document.body.scrollLeft;
+        this.y = clientRectForNode.top + document.body.scrollTop;
+        left = this.x - (clientRectForUI.width  - clientRectForNode.width) / 2;
+        top = this.y - clientRectForUI.height - 5;
 
         if (left - document.body.scrollLeft < 0) {
             left = document.body.scrollLeft;
-            triangleLeft = this.node ? clientRectForNode.right - 18 : this.x - document.body.scrollLeft;
+            triangleLeft = clientRectForNode.right - 18;
         }
         else if (left + clientRectForUI.width > document.body.clientWidth + document.body.scrollLeft) {
             left = document.body.clientWidth + document.body.scrollLeft - clientRectForUI.width;
@@ -351,7 +348,7 @@
         }
 
         if (top - document.body.scrollTop < 0) {
-            top = this.node ? this.y + clientRectForNode.height : this.y + this.fontSize / 2;
+            top = this.y + clientRectForNode.height + 10;
             triangleClass = 'up';
         }
         else {
@@ -364,7 +361,6 @@
     };
 
     var dict;
-    //document.addEventListener('DOMContentLoaded', initDict, false);
 
     chrome.extension.sendRequest({cmd: 'config'}, function (response) {
         dict = new DictSimple({

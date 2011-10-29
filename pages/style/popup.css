@@ -6,8 +6,7 @@ nav, section {border-bottom: 1px solid #999;}
 nav, footer {background-image:-webkit-linear-gradient(top, #e5e5e5, #dfdfdf); font-size: 10px;padding:5px 5px;}
 nav a, footer a{text-decoration: none;color: #000; padding:1px 3px; margin-left: 5px; cursor: pointer;}
 nav a.active{background-color: #f7f7f7; border-radius: 10px; border: 1px solid #c7c7c7;}
-#dict {margin-bottom: 5px; padding-bottom: 5px; border-bottom: 1px solid #bfbfbf}
-nav .disabled a {color: #bfbfbf}
+nav .disabled {display: none;}
 section {padding: 10px;}
 img {width: 15px; height: 15px; margin-left: 5px; cursor: pointer}
 footer {text-align: center;}

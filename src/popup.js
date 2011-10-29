@@ -1,5 +1,5 @@
 (function () {
-	this.delegate = function (node, selector, type, handler) {
+    this.delegate = function (node, selector, type, handler) {
         node.delegate || (node.delegate = {});
         node.delegate[selector] = {handler: handler};
         this.delegate.nodeList || (this.delegate.nodeList = []);
@@ -28,14 +28,14 @@
 
 (function () {
     var port = chrome.extension.connect({name: 'dict'}),
-		searchbox = document.querySelector('textarea'),
-		navDict = document.getElementById('dict'),
-		navTranslate = document.getElementById('translate'),
-		content = document.querySelector('section'),
-		btnHover = document.getElementById('hover'),
-		btnDrag = document.getElementById('drag'),
-		rSingleWord = /^[a-z]+([-'][a-z]+)*$/i,
-		nav;
+    searchbox = document.querySelector('textarea'),
+    navDict = document.getElementById('dict'),
+    navTranslate = document.getElementById('translate'),
+    content = document.querySelector('section'),
+    btnHover = document.getElementById('hover'),
+    btnDrag = document.getElementById('drag'),
+    rSingleWord = /^[a-z]+([-'][a-z]+)*$/i,
+    nav;
 
     port.postMessage({cmd: 'getCaptureMode'});
     port.onMessage.addListener(function (msg) {
@@ -43,7 +43,7 @@
             if (msg.dragCapture) {
                 btnDrag.style.backgroundImage = 'url(../../assets/green.png)';
             }
-           else {
+            else {
                 btnDrag.style.backgroundImage = 'url(../../assets/red.png)';
             }
 
@@ -55,16 +55,16 @@
             }
         }
         else if (msg.key === searchbox.value.trim()) {
-			if (msg.type === 'translate') {
-				content.innerHTML = msg.tt;
-			}
-			else {
-            content.innerHTML = tmpl(msg);
-            var pron = content.querySelector('img');
-            pron && pron.addEventListener('click', function () {
-                this.nextSibling.play();
-            }, false);
-			}
+            if (msg.type === 'translate') {
+                content.innerHTML = msg.tt;
+            }
+            else {
+                content.innerHTML = tmpl(msg);
+                var pron = content.querySelector('img');
+                pron && pron.addEventListener('click', function () {
+                    this.nextSibling.play();
+                }, false);
+            }
         }
     });
 
@@ -79,9 +79,9 @@
         }
         str += '<ul>';
         if (data.tt) {
-        for (i = 0, len = data.tt.length ; i < len ; i += 1) {
-            str += '<li>' + data.tt[i].pos + ' ' + data.tt[i].acceptation + '</li>';
-        }
+            for (i = 0, len = data.tt.length ; i < len ; i += 1) {
+                str += '<li>' + data.tt[i].pos + ' ' + data.tt[i].acceptation + '</li>';
+            }
         }
         else {
             str += '<li>查询不到结果</li>';
@@ -119,48 +119,62 @@
         return canvas;
     }
 
-    function setCaptureMode() {
-        this.className = this.className === '' ? 'active' : '';
-        port.postMessage({cmd: 'setCaptureMode', dragCapture: btnDrag.className === 'active', hoverCapture: btnHover.className === 'active'});
+    function setCaptureMode(e) {
+        var reg = /green\.png\)$/;
+            dragCapture = reg.test(btnDrag.style.backgroundImage),
+            hoverCapture = reg.test(btnHover.style.backgroundImage);
+
+        if (e.target.id === 'drag') {
+            dragCapture = !dragCapture;
+        }
+        else {
+            hoverCapture = !hoverCapture;
+        }
+
+        port.postMessage({
+            cmd: 'setCaptureMode',
+            dragCapture: dragCapture,
+            hoverCapture: hoverCapture
+        });
     }
     btnHover.addEventListener('click', setCaptureMode, false);
     btnDrag.addEventListener('click', setCaptureMode, false);
-	
-	searchbox.focus();
-	searchbox.addEventListener('input', function (e) {
-		var diff = this.scrollHeight - this.offsetHeight, r, p, key;
-		if (diff) {
-			this.style.height = 'auto';
-			this.style.height = this.scrollHeight + 'px';
-		}
 
-		key = this.value.trim();
+    searchbox.focus();
+    searchbox.addEventListener('input', function (e) {
+        var diff = this.scrollHeight - this.offsetHeight, r, p, key;
+        if (diff) {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        }
 
-		if (rSingleWord.test(key)) {
-			dict.className = '';
-			translate.className = 'disabled';
-		}
-		else {
-			dict.className = 'disabled';
-			translate.className = '';
-		}
+        key = this.value.trim();
 
-		if (key.length > 0) {
-			setTimeout(function () {
-				if (e.target.value.trim() === key) {
-					content.innerHTML = '<h1>翻译中...</h1>';
-					port.postMessage({cmd: 'query', w: key, dict: document.querySelector('nav div:not(.disabled) .active').rel});
-				}
-			}, 1000);
-		}
-		else {
-			content.innerHTML = '<h1>等待输入...</h1>';
-			this.style.height = '28px';
-		}
-	}, false);
+        if (rSingleWord.test(key)) {
+            dict.className = '';
+            translate.className = 'disabled';
+        }
+        else {
+            dict.className = 'disabled';
+            translate.className = '';
+        }
+
+        if (key.length > 0) {
+            setTimeout(function () {
+                if (e.target.value.trim() === key) {
+                    content.innerHTML = '<h1>翻译中...</h1>';
+                    port.postMessage({cmd: 'query', w: key, dict: document.querySelector('nav div:not(.disabled) .active').rel});
+                }
+            }, 1000);
+        }
+        else {
+            content.innerHTML = '<h1>等待输入...</h1>';
+            this.style.height = '28px';
+        }
+    }, false);
 
     function dictSwitch(e) {
-		if (this.parentNode.className === 'disabled') {return false;}
+        if (this.parentNode.className === 'disabled') {return false;}
         if (this.className === '') {
             this.parentNode.querySelector('.active').className = '';
             this.className = 'active';
@@ -178,7 +192,7 @@
         }
     }
 
-	nav = translate.querySelectorAll('a');
+    nav = translate.querySelectorAll('a');
     for (var i = 0, len =  nav.length ; i < len ; i += 1) {
         nav[i].addEventListener('click', dictSwitch, false);
         if (nav[i].rel === localStorage.translate) {
