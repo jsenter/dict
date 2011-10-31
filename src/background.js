@@ -32,6 +32,10 @@
 })(this, this.document);
 
 (function () {
+	if (localStorage.skin === undefined) {
+		chrome.tabs.create({url: '../pages/options.html'});
+	}
+
     localStorage.skin || (localStorage.skin = 'orange');
     localStorage.hotKeySwitch || (localStorage.hotKeySwitch = '1');
     localStorage.assistKey || (localStorage.assistKey = 'none');
@@ -39,7 +43,7 @@
     localStorage.hotKeyDrag || (localStorage.hotKeyDrag = '{"ctrlKey":false,"altKey":true,"shiftKey":false,"metaKey":false,"keyCode":113}');
     localStorage.mainDict || (localStorage.mainDict = 'powerword');
     localStorage.assistDict || (localStorage.assistDict = 'dictcn');
-    localStorage.translate || (localStorage.translate = 'powerword');
+    localStorage.translate || (localStorage.translate = 'google');
     localStorage.hoverCapture || (localStorage.hoverCapture = '0');
     localStorage.dragCapture || (localStorage.dragCapture = '1');
     localStorage.status || (localStorage.status = '1');
@@ -55,7 +59,8 @@
     const TRANSLATE_QUERY = {
         powerword: powerwordT,
         baidu: baiduT,
-        youdao: youdaoT
+        youdao: youdaoT,
+		google: googleT
     };
 
     var database = openDatabase('dict', '1.0', 'dict database', 5 * 1024 * 1024);
@@ -502,6 +507,38 @@
                     for (i = 0, len = result.translateResult[0].length ; i < len ; i += 1) {
                         json.tt += result.translateResult[0][i].tgt
                     }
+                    success(json);
+                }
+                else {
+                    error();
+                }
+            },
+            function (e) {
+                console.log(e);
+                error();
+            }
+        );
+    }
+
+	function googleT(word, success, error) {
+		var zh =/[\u4e00-\u9fa5]/.test(word), sl, tl;
+		if (zh) {
+			sl = 'zh-CN';
+			tl = 'en';
+		}
+		else {
+			sl = 'en';
+			tl = 'zh-CN';
+		}
+        ajax(
+            'GET',
+            'http://translate.google.com/translate_a/t',
+            'client=t&hl=zh-CN&sl='+sl+'&tl='+tl+'&text=' + encodeURIComponent(word),
+            function (e) {
+                var json = {key: word, type: 'translate'}, result = e.target.responseText, i, len, item;
+                result = eval('(' + result + ')');
+                if (result[0]) {
+                    json.tt = result[0][0][0];
                     success(json);
                 }
                 else {

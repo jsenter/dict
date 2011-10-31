@@ -22,7 +22,7 @@
             elements[i].addEventListener('click', saveOptions, false);
         }
         //check switch
-        elements = mainview.querySelectorAll('#hotKeySection label:only-child');
+        elements = mainview.querySelectorAll('#hotKeySection label:only-child, #hoverSection label');
         for (i = 0, len = elements.length ; i < len ; i += 1) {
             elements[i].addEventListener('click', checkSwitchClickHanlder, false);
         }
@@ -91,6 +91,14 @@
                     localStorage[target.name] = '1';
                 }
             }
+			else {
+                if (target.checked) {
+                    localStorage[target.name] = '1';
+                }
+                else {
+                    localStorage[target.name] = '0';
+                }
+			}
         }
     }
 

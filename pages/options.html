@@ -52,7 +52,8 @@
                     </div>
                     <div>
                         <h4>翻译功能选择：</h4>
-                        <select name="translate">
+						<select name="translate">
+							<option value="google">Google翻译</option>
                             <option value="powerword">金山词霸</option>
                             <option value="baidu">百度翻译</option>
                             <option value="youdao">有道翻译</option>
@@ -62,8 +63,14 @@
                 </div>
             </section>
             <section id="hoverSection">
-                <h3>取词：</h3>
+                <h3>取词划词：</h3>
                 <div>
+					<div>
+                        <h4>启用取词划词：</h4>
+						<label>启用取词<input type="checkbox" name="hoverCapture" value="1"></label>
+						<label>启用划词<input type="checkbox" name="dragCapture" value="1"></label>
+						<p class="commit">开启取词会添加额外的标签，Web开发者注意</p>
+                    </div>
                     <div>
                         <h4>取词相应速度：</h4>
                         <input type="range" name="speed" value="">
@@ -79,7 +86,8 @@
                         <option value="alt">Alt键</option>
                         <option value="ctrlalt">Ctrl键+Alt键</option>
                     </select>
-                </div>
+					<p class="commit">设置只有按辅助键的时候才会翻译</p>
+				</div>
             </section>
             <section id="hotKeySection">
                 <h3>快捷键：</h3>
