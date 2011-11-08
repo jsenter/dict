@@ -71,16 +71,17 @@
     function tmpl(data) {
         var str = '', i, len;
         str += '<h2>' + data.key + '</h2>';
-        if (data.ps) {
-            str += '<span>[' + data.ps + ']</span>';
-        }
         if (data.pron) {
             str += '<img src="' + drawAlert(300, 300).toDataURL() + '"><audio src="' + data.pron + '"></audio>';
+        }
+		str += '</h2>';
+        if (data.ps) {
+            str += '<p>[ ' + data.ps + ' ]</p>';
         }
         str += '<ul>';
         if (data.tt) {
             for (i = 0, len = data.tt.length ; i < len ; i += 1) {
-                str += '<li>' + data.tt[i].pos + ' ' + data.tt[i].acceptation + '</li>';
+                str += '<li><span>' + data.tt[i].pos + '.</span> ' + data.tt[i].acceptation + '</li>';
             }
         }
         else {

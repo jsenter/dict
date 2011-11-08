@@ -290,7 +290,8 @@
 
     DictSimple.prototype.show = function (data) {
         var i, len, item, ul, li;
-        if (data.key === this.text && 'tt' in data) {
+        if (data.key === this.text) {
+			if ('tt' in data) {
             if (data.type === 'translate') {
                 this.uiKey.parentNode.style.display = 'none';
                 this.uiTrans.innerHTML = data.tt;
@@ -311,6 +312,11 @@
                 }
 
             }
+			}
+			else {
+				this.uiKey.parentNode.style.display = 'none';
+                this.uiTrans.innerHTML = '查询不到结果';
+			}
 
             this.ui.style.display = '';
             this.position();
