@@ -42,7 +42,6 @@
     localStorage.hotKeyHover || (localStorage.hotKeyHover = '{"ctrlKey":false,"altKey":true,"shiftKey":false,"metaKey":false,"keyCode":112}');
     localStorage.hotKeyDrag || (localStorage.hotKeyDrag = '{"ctrlKey":false,"altKey":true,"shiftKey":false,"metaKey":false,"keyCode":113}');
     localStorage.mainDict || (localStorage.mainDict = 'powerword');
-    localStorage.assistDict || (localStorage.assistDict = 'dictcn');
     localStorage.translate || (localStorage.translate = 'google');
     localStorage.hoverCapture || (localStorage.hoverCapture = '0');
     localStorage.dragCapture || (localStorage.dragCapture = '1');
@@ -71,22 +70,7 @@
         console.log(err)
     });
 
-    setPageActionIcon(true);/*
-    chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-        if (tab.status !== 'complete' && !/^chrome/.test(tab.url) && tab.url.indexOf('https://chrome.google.com/webstore') === -1) {
-            chrome.tabs.insertCSS(tabId, {file: 'pages/style/ui.css'});
-            chrome.tabs.executeScript(tabId, {file: "src/dict.js"});
-        }
-    });
-
-    function contextMenusHanlder(info, tab) {
-        var cmd = localStorage.status === '1' ? 'toggleHoverCapture' : 'toggleDragCapture';
-        chrome.tabs.getSelected(null, function(tab) {
-            chrome.tabs.sendRequest(tab.id, {cmd: cmd}, function (response) {
-                toggle(response, tab.id);
-            });
-        });
-    }*/
+    setPageActionIcon(true);
 
     function setPageActionIcon(status) {
         var ico, hoverCapture = localStorage.hoverCapture, dragCapture = localStorage.dragCapture;
@@ -175,8 +159,8 @@
 
     function simpleQuery(msg, port, dict) {//this.rSingleWord = /^[a-z]+([-'][a-z]+)*$/i
         if (/^[a-z]+([-'][a-z]+)*$/i.test(msg.w)) {
-            var mainDict = dict || localStorage.mainDict, assistDict = localStorage.assistDict, assistRes, status = 'init';
-            new DICT_QUERY[mainDict]({
+            var assistRes, status = 'init';
+            new DICT_QUERY[dict || localStorage.mainDict]({
                 word: msg.w,
                 load: function (json) {
                     status = 'complete';
@@ -195,23 +179,21 @@
                 }
             }).query();
 
-            if (assistDict && dict === undefined) {
-                new DICT_QUERY[assistDict]({
-                    word: msg.w,
-                    load: function (json) {
-                        if (status === 'error') {
-                            port.postMessage(json);
-                        }
-                        assistRes = json;
-                    },
-                    error: function () {
-                        if (status === 'error') {
-                            port.postMessage({key: msg.w});
-                        }
-                        assistRes = {key: msg.w};
+            TRANSLATE_QUERY[dict || localStorage.translate](
+                msg.w,
+                function (json) {
+                    if (status === 'error') {
+                        port.postMessage(json);
                     }
-                }).query();
-            }
+                    assistRes = json;
+                },
+                function (word) {
+                    if (status === 'error') {
+                        port.postMessage({key: msg.w});
+                    }
+                    assistRes = {key: msg.w};
+                }
+            );
         }
         else {
             TRANSLATE_QUERY[dict || localStorage.translate](

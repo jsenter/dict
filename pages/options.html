@@ -29,26 +29,17 @@
                 </div>
             </section>
             <section id="dictSection">
-                <h3>词典：</h3>
+                <h3>词典配置：</h3>
                 <div>
                     <div>
                         <h4>词典功能选择：</h4>
-                        <label>主词典</label>
                         <select name="mainDict">
                             <option value="powerword">金山词霸</option>
                             <option value="bing">必应词典</option>
                             <option value="dictcn">海词</option>
                             <option value="qqdict">QQ词典</option>
                         </select>
-                        <label>辅助词典</label>
-                        <select name="assistDict">
-                            <option value="">无</option>
-                            <option value="powerword">金山词霸</option>
-                            <option value="bing">必应词典</option>
-                            <option value="dictcn">海词</option>
-                            <option value="qqdict">QQ词典</option>
-                        </select>
-                        <p class="commit">当主词典查询不到结果时, 辅助词典用于二次查询</p>
+                        <p class="commit">词典用于查询英语单词</p>
                     </div>
                     <div>
                         <h4>翻译功能选择：</h4>
@@ -58,7 +49,7 @@
                             <option value="baidu">百度翻译</option>
                             <option value="youdao">有道翻译</option>
                         </select>
-                        <p class="commit">对句子进行翻译</p>
+                        <p class="commit">翻译用于英汉互译</p>
                     </div>
                 </div>
             </section>
@@ -66,7 +57,6 @@
                 <h3>取词划词：</h3>
                 <div>
 					<div>
-                        <h4>启用取词划词：</h4>
 						<label>启用取词<input type="checkbox" name="hoverCapture" value="1"></label>
 						<label>启用划词<input type="checkbox" name="dragCapture" value="1"></label>
 						<p class="commit">开启取词会添加额外的标签，Web开发者注意</p>

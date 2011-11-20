@@ -1,9 +1,8 @@
 (function () {
-    var mainview, dicts;
+    var mainview;
 
     function init() {
         mainview = document.getElementById('mainview');
-        dicts = document.getElementById('dictSection');
 
         uiEnhance();
         restoreOptions();
@@ -111,16 +110,7 @@
     }
 
     function setDict(e) {
-        var target = e.target, assistDict, opt;
-        if (target.name === 'mainDict') {
-            assistDict = dicts.querySelector('select:last-of-type');
-            opt = assistDict.querySelector('[style]');
-            if (opt) {
-                opt.style.display = '';
-            }
-            assistDict.querySelector('[value=' + target.value + ']').style.display = 'none';
-        }
-        localStorage[target.name] = target.value;
+        localStorage[e.target.name] = e.target.value;
     }
 
     function setSpeed() {
