@@ -1,41 +1,13 @@
-(function () {
-    this.delegate = function (node, selector, type, handler) {
-        node.delegate || (node.delegate = {});
-        node.delegate[selector] = {handler: handler};
-        this.delegate.nodeList || (this.delegate.nodeList = []);
-        if (this.delegate.nodeList.indexOf(node) === -1) {
-            node.addEventListener(type, function (e) {
-                var target = e.target, key, tmp;
-                do {
-                    for (key in node.delegate) {
-                        tmp = node.delegate[key];
-                        if (Array.prototype.indexOf.call(node.querySelectorAll(key), target) > -1) {
-                            delete e.target;
-                            e.target = target;
-                            tmp.handler.call(target, e);
-                            return;
-                        }
-                    }
-                    target = target.parentNode;
-                }
-                while (target && target !== this);
-            }, false);
-            this.delegate.nodeList.push(node);
-        }
-    };
-
-})();
-
-(function () {
+(function (window, document, undefined) {
     var port = chrome.extension.connect({name: 'dict'}),
     searchbox = document.querySelector('textarea'),
-    navDict = document.getElementById('dict'),
-    navTranslate = document.getElementById('translate'),
+    dict = document.querySelector('nav'),
     content = document.querySelector('section'),
     btnHover = document.getElementById('hover'),
     btnDrag = document.getElementById('drag'),
     rSingleWord = /^[a-z]+([-'][a-z]+)*$/i,
-    nav;
+    dictCurrent = localStorage.mainDict,
+    translateCurrent = localStorage.translate;
 
     port.postMessage({cmd: 'getCaptureMode'});
     port.onMessage.addListener(function (msg) {
@@ -56,14 +28,10 @@
         }
         else if (msg.key === searchbox.value.trim()) {
             if (msg.type === 'translate') {
-                content.innerHTML = msg.tt;
+                content.innerHTML = '<h2>' + msg.key + '</h2><p>' + msg.tt + '</p>';
             }
             else {
                 content.innerHTML = tmpl(msg);
-                var pron = content.querySelector('img');
-                pron && pron.addEventListener('click', function () {
-                    this.nextSibling.play();
-                }, false);
             }
         }
     });
@@ -74,7 +42,7 @@
         if (data.pron) {
             str += '<img src="' + drawAlert(300, 300).toDataURL() + '"><audio src="' + data.pron + '"></audio>';
         }
-		str += '</h2>';
+        str += '</h2>';
         if (data.ps) {
             str += '<p>[ ' + data.ps + ' ]</p>';
         }
@@ -143,7 +111,7 @@
 
     searchbox.focus();
     searchbox.addEventListener('input', function (e) {
-        var diff = this.scrollHeight - this.offsetHeight, r, p, key;
+        var diff = this.scrollHeight - this.offsetHeight, key;
         if (diff) {
             this.style.height = 'auto';
             this.style.height = this.scrollHeight + 'px';
@@ -152,19 +120,23 @@
         key = this.value.trim();
 
         if (rSingleWord.test(key)) {
-            dict.className = '';
-            translate.className = 'disabled';
+            if (!dict.querySelector('#dict .active')) {
+                if (dict.querySelector('.active')) {dict.querySelector('.active').className = ''}
+                dict.querySelector('a[rel='+dictCurrent+']').className = 'active';
+            }
         }
         else {
-            dict.className = 'disabled';
-            translate.className = '';
+            if (!dict.querySelector('#translate .active')) {
+                if (dict.querySelector('.active')) {dict.querySelector('.active').className = ''}
+                dict.querySelector('a[rel='+translateCurrent+']').className = 'active';
+            }
         }
 
         if (key.length > 0) {
             setTimeout(function () {
                 if (e.target.value.trim() === key) {
                     content.innerHTML = '<h1>翻译中...</h1>';
-                    port.postMessage({cmd: 'query', w: key, dict: document.querySelector('nav div:not(.disabled) .active').rel});
+                    port.postMessage({cmd: 'query', w: key, dict: dict.querySelector('.active').rel, type: dict.querySelector('.active').parentNode.id});
                 }
             }, 1000);
         }
@@ -174,30 +146,51 @@
         }
     }, false);
 
-    function dictSwitch(e) {
-        if (this.parentNode.className === 'disabled') {return false;}
-        if (this.className === '') {
-            this.parentNode.querySelector('.active').className = '';
-            this.className = 'active';
+    delegate(dict, 'a', 'click', function (e) {
+        var target = this;
+        if (target.className !== 'active') {
+            dict.querySelector('.active').className = '';
+            target.className = 'active';
+            if (target.parentNode.id === 'dict') {
+                dictCurrent = target.rel;
+            }
+            else {
+                translateCurrent = target.rel;
+            }
             if (searchbox.value.trim().length > 0) {
-                port.postMessage({cmd: 'query', w: searchbox.value.trim(), dict: this.rel});
+                port.postMessage({cmd: 'query', w: searchbox.value.trim(), dict: target.rel, type: target.parentNode.id});
             }
         }
         e.preventDefault();
-    }
-    nav = dict.querySelectorAll('a');
-    for (var i = 0, len =  nav.length ; i < len ; i += 1) {
-        nav[i].addEventListener('click', dictSwitch, false);
-        if (nav[i].rel === localStorage.mainDict) {
-            nav[i].className = 'active';
+    });
+
+    delegate(content, 'img', 'click', function () {
+        this.nextSibling.play();
+    });
+
+    function delegate(node, selector, type, handler) {
+        node.delegate || (node.delegate = {});
+        node.delegate[selector] = {handler: handler};
+        delegate.nodeList || (delegate.nodeList = []);
+        if (delegate.nodeList.indexOf(node) === -1) {
+            node.addEventListener(type, function (e) {
+                var target = e.target, key, tmp;
+                do {
+                    for (key in node.delegate) {
+                        tmp = node.delegate[key];
+                        if (Array.prototype.indexOf.call(node.querySelectorAll(key), target) > -1) {
+                            delete e.target;
+                            e.target = target;
+                            tmp.handler.call(target, e);
+                            return;
+                        }
+                    }
+                    target = target.parentNode;
+                }
+                while (target && target !== this);
+            }, false);
+            delegate.nodeList.push(node);
         }
     }
 
-    nav = translate.querySelectorAll('a');
-    for (var i = 0, len =  nav.length ; i < len ; i += 1) {
-        nav[i].addEventListener('click', dictSwitch, false);
-        if (nav[i].rel === localStorage.translate) {
-            nav[i].className = 'active';
-        }
-    }
-})();
+})(this, this.document);

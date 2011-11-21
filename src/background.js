@@ -1,37 +1,4 @@
-﻿(function (window, document, undefined){
-    this.extend = function (childCtor, parentCtor) {
-        function tempCtor() {};
-        tempCtor.prototype = parentCtor.prototype;
-        childCtor.prototype = new tempCtor();
-        childCtor.prototype.super = parentCtor.prototype;
-        childCtor.prototype.constructor = childCtor;
-    }
-
-    this.proxy = function (fn, obj) {
-        return function () {
-            return fn.apply(obj, arguments);
-        }
-    }
-
-    this.ajax = function (type, url, data, success, error) {
-        var xhr = new XMLHttpRequest();
-        if (type.toUpperCase() === 'GET') {
-            url += '?' + data;
-            data = null;
-        }
-        xhr.open(type, url, true);
-        if (type.toUpperCase() === 'POST') {
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        }
-        xhr.addEventListener('load', function (e) {
-            success(e);
-        }, false);
-        xhr.addEventListener('error', error, false);
-        xhr.send(data);//encodeURIComponent
-    };
-})(this, this.document);
-
-(function () {
+﻿(function () {
 	if (localStorage.skin === undefined) {
 		chrome.tabs.create({url: '../pages/options.html'});
 	}
@@ -144,7 +111,7 @@
                     port.postMessage({cmd: 'setCaptureMode', hoverCapture: localStorage.hoverCapture === '1', dragCapture: localStorage.dragCapture === '1'});
                     break;
                 case 'query':
-                    simpleQuery(msg, port, msg.dict);
+                    simpleQuery(msg.w, port, msg.dict, msg.type);
                     break;
                 }
             });
@@ -157,54 +124,78 @@
         port.postMessage(msg);
     };
 
-    function simpleQuery(msg, port, dict) {//this.rSingleWord = /^[a-z]+([-'][a-z]+)*$/i
-        if (/^[a-z]+([-'][a-z]+)*$/i.test(msg.w)) {
-            var assistRes, status = 'init';
-            new DICT_QUERY[dict || localStorage.mainDict]({
-                word: msg.w,
-                load: function (json) {
-                    status = 'complete';
-                    port.postMessage(json);
-                },
-                error: function () {
-                    if (dict) {
-                        port.postMessage({key: msg.w});
-                    }
-                    else {
-                        status = 'error';
-                        if (typeof assistRes !== 'undefined') {
-                            port.postMessage(assistRes);
-                        }
-                    }
-                }
-            }).query();
-
-            TRANSLATE_QUERY[dict || localStorage.translate](
-                msg.w,
-                function (json) {
-                    if (status === 'error') {
+    function simpleQuery(key, port, dict, type) {
+        if (dict) {
+            if (type === 'dict') {
+                new DICT_QUERY[dict]({
+                    word: key,
+                    load: function (json) {
                         port.postMessage(json);
+                    },
+                    error: function (json) {
+                        port.postMessage({key: key});
                     }
-                    assistRes = json;
-                },
-                function (word) {
-                    if (status === 'error') {
-                        port.postMessage({key: msg.w});
+                }).query();
+            }
+            else {
+                TRANSLATE_QUERY[dict](
+                    key,
+                    function (json) {
+                        port.postMessage(json);
+                    },
+                    function (word) {
+                        port.postMessage({key: key});
                     }
-                    assistRes = {key: msg.w};
-                }
-            );
+                );
+            }
         }
         else {
-            TRANSLATE_QUERY[dict || localStorage.translate](
-                msg.w,
-                function (json) {
-                    port.postMessage(json);
-                },
-                function (word) {
-                    port.postMessage({key: msg.w});
-                }
-            );
+            if (/^[a-z]+([-'][a-z]+)*$/i.test(key)) {
+                var assistRes, status = 'init';
+                new DICT_QUERY[localStorage.mainDict]({
+                    word: key,
+                    load: function (json) {
+                        status = 'complete';
+                        port.postMessage(json);
+                    },
+                    error: function () {
+                        if (typeof assistRes !== 'undefined') {
+                            port.postMessage(assistRes);
+                            status = 'complete';
+                        }
+                        else {
+                            status = 'error';
+                        }
+                    }
+                }).query();
+
+                TRANSLATE_QUERY[localStorage.translate](
+                    key,
+                    function (json) {
+                        assistRes = json;
+                        if (status === 'error') {
+                            port.postMessage(json);
+                        }
+                    },
+                    function (word) {
+                        assistRes = {key: key};
+                        if (status === 'error') {
+                            port.postMessage({key: key});
+                        }
+                    }
+                );
+            }
+            else {
+                TRANSLATE_QUERY[localStorage.translate](
+                    key,
+                    function (json) {
+                        port.postMessage(json);
+                    },
+                    function (word) {
+                        port.postMessage({key: key});
+                    }
+                );
+            }
         }
     }
 
@@ -534,4 +525,43 @@
         );
     }
 
-})();
+    function extend(childCtor, parentCtor) {
+        function tempCtor() {};
+        tempCtor.prototype = parentCtor.prototype;
+        childCtor.prototype = new tempCtor();
+        childCtor.prototype.super = parentCtor.prototype;
+        childCtor.prototype.constructor = childCtor;
+    }
+
+    function proxy(fn, obj) {
+        return function () {
+            return fn.apply(obj, arguments);
+        }
+    }
+
+    function ajax(method, url, data, timeout, success, error) {
+        var client = new XMLHttpRequest(), data, isTimeout = false, self = this;
+        method = method.toLowerCase();
+        if (typeof data === 'object') {
+            data = stringify(data);
+        }
+        if (method === 'get' && data) {
+            url += '?' + data;
+            data = null;
+        }
+        client.onload = function () {
+            if (!isTimeout && ((client.status >= 200 && client.status < 300) || client.status == 304)) {
+                success(client);
+            }
+            else {
+                error(client);
+            }
+        };
+        client.open(method, url, true);
+        method === 'post' && client.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+        client.setRequestHeader('ajax', 'true');
+        client.send(data);
+        setTimeout(function () {isTimeout = true;}, timeout);
+    };
+
+})(this, this.document);
