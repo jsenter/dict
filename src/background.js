@@ -1,7 +1,7 @@
 ﻿(function () {
-	if (localStorage.skin === undefined) {
-		chrome.tabs.create({url: '../pages/options.html'});
-	}
+    if (localStorage.skin === undefined) {
+        chrome.tabs.create({url: '../pages/options.html'});
+    }
 
     localStorage.skin || (localStorage.skin = 'orange');
     localStorage.hotKeySwitch || (localStorage.hotKeySwitch = '1');
@@ -15,51 +15,22 @@
     localStorage.status || (localStorage.status = '1');
     localStorage.speed || (localStorage.speed = '50');
 
-    const DICT_QUERY = {
-        powerword: Powerword,
-        bing: Bing,
-        dictcn: Dictcn,
-        qqdict: QQDict
-    };
-
-    const TRANSLATE_QUERY = {
-        powerword: powerwordT,
-        baidu: baiduT,
-        youdao: youdaoT,
-		google: googleT
-    };
-
-    var database = openDatabase('dict', '1.0', 'dict database', 5 * 1024 * 1024);
-    database.transaction(function (tx) {
-        tx.executeSql('DROP TABLE IF EXISTS dict')
-        tx.executeSql('CREATE TABLE IF NOT EXISTS dicty (word text, api text, content text, PRIMARY KEY (word, api))');
-    }, function (err) {
-        console.log(err)
-    });
-
-    setPageActionIcon(true);
-
-    function setPageActionIcon(status) {
+    function setPageActionIcon() {
         var ico, hoverCapture = localStorage.hoverCapture, dragCapture = localStorage.dragCapture;
-        if (status) {
-            if (hoverCapture === '1' && dragCapture === '1') {
-                ico = 'assets/normal.png';
-            }
-            else if (hoverCapture === '1') {
-                ico = 'assets/hover.png';
-            }
-            else if (dragCapture === '1') {
-                ico = 'assets/drag.png';
-            }
-            else {
-                ico = 'assets/off.png';
-            }
+        if (hoverCapture === '1' && dragCapture === '1') {
+            ico = '../assets/normal.png';
+        }
+        else if (hoverCapture === '1') {
+            ico = '../assets/hover.png';
+        }
+        else if (dragCapture === '1') {
+            ico = '../assets/drag.png';
         }
         else {
-            ico = 'assets/grey.png';
+            ico = '../assets/off.png';
         }
 
-        chrome.browserAction.setIcon({path: chrome.extension.getURL(ico)});
+        chrome.browserAction.setIcon({path: ico});
     }
 
     chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
@@ -97,7 +68,6 @@
                 switch (msg.cmd) {
                 case 'setCaptureMode':
                     setCaptureMode(msg, port);
-                    setPageActionIcon(true);
                     if (!port.tab) {
                         chrome.tabs.getAllInWindow(null, function (tabs) {
                             var request = {cmd: 'setCaptureMode', hoverCapture: localStorage.hoverCapture === '1', dragCapture: localStorage.dragCapture === '1'};
@@ -127,7 +97,7 @@
     function simpleQuery(key, port, dict, type) {
         if (dict) {
             if (type === 'dict') {
-                new DICT_QUERY[dict]({
+                new dictapi.dict[dict]({
                     word: key,
                     load: function (json) {
                         port.postMessage(json);
@@ -138,7 +108,7 @@
                 }).query();
             }
             else {
-                TRANSLATE_QUERY[dict](
+                dictapi.translate[dict](
                     key,
                     function (json) {
                         port.postMessage(json);
@@ -152,14 +122,14 @@
         else {
             if (/^[a-z]+([-'][a-z]+)*$/i.test(key)) {
                 var assistRes, status = 'init';
-                new DICT_QUERY[localStorage.mainDict]({
+                new dictapi.dict[localStorage.mainDict]({
                     word: key,
                     load: function (json) {
                         status = 'complete';
                         port.postMessage(json);
                     },
                     error: function () {
-                        if (typeof assistRes !== 'undefined') {
+                        if (assistRes) {
                             port.postMessage(assistRes);
                             status = 'complete';
                         }
@@ -169,7 +139,7 @@
                     }
                 }).query();
 
-                TRANSLATE_QUERY[localStorage.translate](
+                dictapi.translate[localStorage.translate](
                     key,
                     function (json) {
                         assistRes = json;
@@ -186,7 +156,7 @@
                 );
             }
             else {
-                TRANSLATE_QUERY[localStorage.translate](
+                dictapi.translate[localStorage.translate](
                     key,
                     function (json) {
                         port.postMessage(json);

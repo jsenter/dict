@@ -4,14 +4,15 @@
     "description": "Chrome下最好用的翻译工具,可取词可划词,支持Google翻译、金山词霸、QQ词典、海词、百度翻译、有道翻译、必应词典",
 
     "icons": {
-        "16": "assets/icon16.png",
+        "16": "assets/normal.png",
         "48": "assets/icon48.png",
         "128": "assets/icon128.png"
     },
 
     "browser_action": {
         "default_title": "易词典",
-        "default_popup": "pages/popup.html"
+        "default_popup": "pages/popup.html",
+        "default_icon": "assets/normal.png"
     },
 
     "content_scripts": [

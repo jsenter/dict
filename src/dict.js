@@ -291,32 +291,32 @@
     DictSimple.prototype.show = function (data) {
         var i, len, item, ul, li;
         if (data.key === this.text) {
-			if ('tt' in data) {
-            if (data.type === 'translate') {
-                this.uiKey.parentNode.style.display = 'none';
-                this.uiTrans.innerHTML = data.tt;
+            if ('tt' in data) {
+                if (data.type === 'translate') {
+                    this.uiKey.parentNode.style.display = 'none';
+                    this.uiTrans.innerHTML = data.tt;
+                }
+                else {
+                    this.uiKey.parentNode.style.display = 'block';
+                    this.uiKey.innerHTML = this.text;
+                    this.uiPs.innerHTML = data.ps === '' ? '' : '[' + data.ps + ']';
+                    this.uiPron.src = data.pron;
+                    this.uiPronBtn.style.display = data.pron === '' ?  'none' : '';
+                    this.uiTrans.innerHTML = '';
+
+                    for (i = 0, len = data.tt.length ; i < len ; i += 1) {
+                        item = data.tt[i];
+                        li = document.createElement('li');
+                        li.innerHTML = item.pos + ' ' + item.acceptation;
+                        this.uiTrans.appendChild(li);
+                    }
+
+                }
             }
             else {
-                this.uiKey.parentNode.style.display = 'block';
-                this.uiKey.innerHTML = this.text;
-                this.uiPs.innerHTML = data.ps === '' ? '' : '[' + data.ps + ']';
-                this.uiPron.src = data.pron;
-                this.uiPronBtn.style.display = data.pron === '' ?  'none' : '';
-                this.uiTrans.innerHTML = '';
-
-                for (i = 0, len = data.tt.length ; i < len ; i += 1) {
-                    item = data.tt[i];
-                    li = document.createElement('li');
-                    li.innerHTML = item.pos + ' ' + item.acceptation;
-                    this.uiTrans.appendChild(li);
-                }
-
-            }
-			}
-			else {
-				this.uiKey.parentNode.style.display = 'none';
+                this.uiKey.parentNode.style.display = 'none';
                 this.uiTrans.innerHTML = '查询不到结果';
-			}
+            }
 
             this.ui.style.display = '';
             this.position();

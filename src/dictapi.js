@@ -1,3 +1,5 @@
+(function (window, document, undefined) {
+
     function ajax(method, url, data, success, error, timeout) {
         var client = new XMLHttpRequest(), isTimeout = false;
         method = method.toLowerCase();
@@ -12,6 +14,9 @@
             else {
                 error(client);
             }
+        };
+        client.onerror = function () {
+            error(client);
         };
         client.open(method, url, true);
         if (method === 'post') {client.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');}
@@ -34,6 +39,14 @@
         }
     }
 
+    var database = openDatabase('dict', '1.0', 'dict database', 5 * 1024 * 1024);
+    database.transaction(function (tx) {
+        tx.executeSql('DROP TABLE IF EXISTS dict')
+        tx.executeSql('CREATE TABLE IF NOT EXISTS dicty (word text, api text, content text, PRIMARY KEY (word, api))');
+    }, function (err) {
+        console.log(err)
+    });
+
     function Query(args) {
         args = args || {};
         this.word = args.word;
@@ -52,11 +65,11 @@
                     self.load(JSON.parse(result.rows.item(0).content));
                 }
                 else {
-                    ajax(self.type, self.api, self.data, proxy(self.ajaxLoad, self), proxy(self.error, self));
+                    ajax(self.type, self.api, self.data, proxy(self.ajaxLoad, self), proxy(self.ajaxError, self));
                 }
             }, function (tx, err) {
                 console.log(arguments);
-                ajax(self.type, self.api, self.data, proxy(self.ajaxLoad, self), proxy(self.error, self));
+                ajax(self.type, self.api, self.data, proxy(self.ajaxLoad, self), proxy(self.ajaxError, self));
             });
         });
     };
@@ -73,14 +86,20 @@
         });
     };
 
-    Query.prototype.ajaxLoad = function (e) {
+    Query.prototype.ajaxLoad = function (client) {
         if (this.res.tt && this.res.tt.length > 0) {
             this.load(this.res);
             this.updateDB(this.res);
         }
         else {
-            this.error();
+            this.ajaxError();
         }
+    };
+
+    Query.prototype.ajaxError = function (client) {
+        this.res = {};
+        this.res.key = this.word;
+        this.error(this.res)
     };
 
 
@@ -98,8 +117,8 @@
 
     extend(Powerword, Query);
 
-    Powerword.prototype.ajaxLoad = function (e) {
-        var xml = e.target.responseXML, json = this.res, elems, elem, i, len, item;
+    Powerword.prototype.ajaxLoad = function (client) {
+        var xml = client.responseXML, json = this.res, elems, elem, i, len, item;
         if (xml) {
             elems = xml.getElementsByTagName('ps')[0];
             json.ps = elems ? elems.firstChild.nodeValue : '';
@@ -119,7 +138,7 @@
             }
         }
 
-        this.super.ajaxLoad.call(this, e);
+        this.super.ajaxLoad.call(this, client);
     };
 
 
@@ -135,8 +154,8 @@
 
     extend(Dictcn, Query);
 
-    Dictcn.prototype.ajaxLoad = function (e) {
-        var xml = e.target.responseText, json = this.res, elems, elem, i, len, item, parser, reg = /[a-z]\..+?(?=[a-z]\.|$)/gm;
+    Dictcn.prototype.ajaxLoad = function (client) {
+        var xml = client.responseText, json = this.res, elems, elem, i, len, item, parser, reg = /[a-z]\..+?(?=[a-z]\.|$)/gm;
         if (xml) {
             parser = new DOMParser();
             xml = parser.parseFromString(xml,"text/xml");
@@ -163,7 +182,7 @@
             }
         }
 
-        this.super.ajaxLoad.call(this, e);
+        this.super.ajaxLoad.call(this, client);
     };
 
 
@@ -179,8 +198,8 @@
 
     extend(QQDict, Query);
 
-    QQDict.prototype.ajaxLoad = function (e) {
-        var xml = eval('(' + e.target.responseText + ')'), json = this.res, elems, elem, i, len, item;
+    QQDict.prototype.ajaxLoad = function (client) {
+        var xml = eval('(' + client.responseText + ')'), json = this.res, elems, elem, i, len, item;
         if (xml.local) {
             xml = xml.local[0];
             json.ps = xml.pho ? xml.pho[0] : '';
@@ -200,7 +219,7 @@
             }
         }
 
-        this.super.ajaxLoad.call(this, e);
+        this.super.ajaxLoad.call(this, client);
     };
 
 
@@ -216,8 +235,8 @@
 
     extend(Bing, Query);
 
-    Bing.prototype.ajaxLoad = function (e) {
-        var xml = JSON.parse(e.target.responseText).ROOT, json = this.res, elems, elem, i, len, j, jLen, item, t;
+    Bing.prototype.ajaxLoad = function (client) {
+        var xml = JSON.parse(client.responseText).ROOT, json = this.res, elems, elem, i, len, j, jLen, item, t;
         if (xml.DEF) {
             json.ps = xml.PROS.PRO ? (xml.PROS.PRO.length ? xml.PROS.PRO[0].$ : xml.PROS.PRO.$) : '';
 
@@ -248,7 +267,7 @@
             }
         }
 
-        this.super.ajaxLoad.call(this, e);
+        this.super.ajaxLoad.call(this, client);
     };
 
 
@@ -260,8 +279,8 @@
             'POST',
             'http://fy.iciba.com/interface.php',
             't=auto&content=' + encodeURIComponent(word),
-            function (e) {
-                var json = {key: word, type: 'translate'}, result = e.target.responseText;
+            function (client) {
+                var json = {key: word, type: 'translate'}, result = client.responseText;
                 if (result) {
                     json.tt = result;
                     success(json);
@@ -271,7 +290,6 @@
                 }
             },
             function (e) {
-                console.log(e);
                 error();
             }
         );
@@ -283,8 +301,8 @@
             'POST',
             'http://fanyi.baidu.com/transcontent',
             'ie=utf-8&source=txt&t=1319299803844&token=6676e72ea0f1a94a7dc95c52a4c46761&from=auto&to=auto&query=' + encodeURIComponent(word),
-            function (e) {
-                var json = {key: word, type: 'translate'}, result = e.target.responseText;
+            function (client) {
+                var json = {key: word, type: 'translate'}, result = client.responseText;
                 result = JSON.parse(result);
                 if (result.data && result.data.length) {
                     json.tt = result.data[0].dst
@@ -295,7 +313,6 @@
                 }
             },
             function (e) {
-                console.log(e);
                 error();
             }
         );
@@ -306,8 +323,8 @@
             'POST',
             'http://fanyi.youdao.com/translate?smartresult=dict&smartresult=rule&smartresult=ugc&sessionFrom=http://dict.youdao.com/',
             'type=AUTO&doctype=json&xmlVersion=1.4&keyfrom=fanyi.web&ue=UTF-8&typoResult=true&flag=false&i=' + encodeURIComponent(word),
-            function (e) {
-                var json = {key: word, type: 'translate'}, result = e.target.responseText, i, len, item;
+            function (client) {
+                var json = {key: word, type: 'translate'}, result = client.responseText, i, len, item;
                 result = JSON.parse(result);
                 if (result.translateResult.length) {
                     json.tt = '';
@@ -321,28 +338,27 @@
                 }
             },
             function (e) {
-                console.log(e);
                 error();
             }
         );
     }
 
-	function googleT(word, success, error) {
-		var zh =/[\u4e00-\u9fa5]/.test(word), sl, tl;
-		if (zh) {
-			sl = 'zh-CN';
-			tl = 'en';
-		}
-		else {
-			sl = 'en';
-			tl = 'zh-CN';
-		}
+    function googleT(word, success, error) {
+        var zh =/[\u4e00-\u9fa5]/.test(word), sl, tl;
+        if (zh) {
+            sl = 'zh-CN';
+            tl = 'en';
+        }
+        else {
+            sl = 'en';
+            tl = 'zh-CN';
+        }
         ajax(
             'GET',
             'http://translate.google.com/translate_a/t',
             'client=t&hl=zh-CN&sl='+sl+'&tl='+tl+'&text=' + encodeURIComponent(word),
-            function (e) {
-                var json = {key: word, type: 'translate'}, result = e.target.responseText, i, len, item;
+            function (client) {
+                var json = {key: word, type: 'translate'}, result = client.responseText, i, len, item;
                 result = eval('(' + result + ')');
                 if (result[0]) {
                     json.tt = result[0][0][0];
@@ -353,8 +369,25 @@
                 }
             },
             function (e) {
-                console.log(e);
                 error();
             }
         );
     }
+
+
+    window.dictapi = {
+        dict: {
+            powerword: Powerword,
+            bing: Bing,
+            dictcn: Dictcn,
+            qqdict: QQDict
+        },
+
+        translate: {
+            powerword: powerwordT,
+            baidu: baiduT,
+            youdao: youdaoT,
+            google: googleT
+        }
+    }
+})(this, this.document);
