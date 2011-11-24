@@ -26,10 +26,27 @@
     };
 
     function extend(childCtor, parentCtor) {
+        var fnTest = /\bsuperclass\b/, parent = parentCtor.prototype
         function tempCtor() {};
-        tempCtor.prototype = parentCtor.prototype;
+        if (parent.superclass && !parent.multiSuperclass) {
+            parent.multiSuperclass = true;
+            for (var name in parent) {
+                if (parent.hasOwnProperty(name) && fnTest.test(parent[name])) {
+                    parent[name] = (function (name, fn) {
+                        return function () {
+                            var bak = this.superclass[name];
+                            this.superclass[name] = parent.superclass[name];
+                            var res = fn.apply(this, arguments);
+                            this.superclass[name] = bak;
+                            return res;
+                        }
+                    })(name, parent[name]);
+                }
+            }
+        }
+        tempCtor.prototype = parent;
         childCtor.prototype = new tempCtor();
-        childCtor.prototype.super = parentCtor.prototype;
+        childCtor.prototype.superclass = parentCtor.prototype;
         childCtor.prototype.constructor = childCtor;
     }
 
@@ -50,14 +67,48 @@
     function Query(args) {
         args = args || {};
         this.word = args.word;
-        this.load = args.load;
-        this.error = args.error;
+        this.loadend = args.loadend || function(){};
+        this.load = args.load || function(){};
+        this.error = args.error || function(){};
 
         this.res = {};
         this.res.key = this.word;
+        this.res.tt = [];
     }
 
     Query.prototype.query = function () {
+        ajax(this.type, this.api, this.data, proxy(this.ajaxLoad, this), proxy(this.ajaxError, this));
+    };
+
+    Query.prototype.ajaxLoad = function (client) {
+        if (this.res.tt && this.res.tt.length > 0) {
+            this.load(this.res);
+            this.loadend(this.res);
+        }
+        else {
+            this.ajaxError();
+        }
+    };
+
+    Query.prototype.ajaxError = function (client) {
+        this.res = {};
+        this.res.key = this.word;
+        this.res.tt = [{pos: '', acceptation: '查询不到结果'}];
+        this.error(this.res);
+        this.loadend(this.res);
+    };
+
+
+
+
+    function Dict(args) {
+        args = args || {};
+        this.superclass.constructor.call(this, args);
+    }
+
+    extend(Dict, Query);
+
+    Dict.prototype.query = function () {
         var self = this;
         database.transaction(function (tx) {
             tx.executeSql('SELECT * FROM dicty WHERE word=? AND api=?', [self.word, self.model], function (tx, result) {
@@ -67,14 +118,14 @@
                 else {
                     ajax(self.type, self.api, self.data, proxy(self.ajaxLoad, self), proxy(self.ajaxError, self));
                 }
-            }, function (tx, err) {
-                console.log(arguments);
+            });/*, function (tx, err) {
+                console.log('selct error', arguments);
                 ajax(self.type, self.api, self.data, proxy(self.ajaxLoad, self), proxy(self.ajaxError, self));
-            });
+            }*/
         });
     };
 
-    Query.prototype.updateDB = function (data) {
+    Dict.prototype.updateDB = function (data) {
         var self = this;
         database.transaction(function (tx) {
             tx.executeSql('INSERT INTO dicty VALUES (?,?,?)', [data.key, self.model , JSON.stringify(data)]);
@@ -86,20 +137,15 @@
         });
     };
 
-    Query.prototype.ajaxLoad = function (client) {
-        if (this.res.tt && this.res.tt.length > 0) {
+    Dict.prototype.ajaxLoad = function (client) {
+        if (this.res.tt.length > 0) {
             this.load(this.res);
             this.updateDB(this.res);
+            this.loadend(this.res);
         }
         else {
             this.ajaxError();
         }
-    };
-
-    Query.prototype.ajaxError = function (client) {
-        this.res = {};
-        this.res.key = this.word;
-        this.error(this.res)
     };
 
 
@@ -107,7 +153,7 @@
 
     function Powerword(args) {
 
-        this.super.constructor.call(this, args);
+        this.superclass.constructor.call(this, args);
 
         this.api = 'http://dict-co.iciba.com/api/dictionary.php';
         this.type = 'get';
@@ -115,7 +161,7 @@
         this.model = 'powerword';
     }
 
-    extend(Powerword, Query);
+    extend(Powerword, Dict);
 
     Powerword.prototype.ajaxLoad = function (client) {
         var xml = client.responseXML, json = this.res, elems, elem, i, len, item;
@@ -126,7 +172,6 @@
             elems = xml.getElementsByTagName('pron')[0];
             json.pron = elems ? elems.firstChild.nodeValue.trim() : '';
 
-            json.tt = [];
             elems = xml.getElementsByTagName('acceptation');
             for (i = 0, len = elems.length ; i < len ; i += 1) {
                 item = elems[i];
@@ -138,13 +183,13 @@
             }
         }
 
-        this.super.ajaxLoad.call(this, client);
+        this.superclass.ajaxLoad.call(this, client);
     };
 
 
     function Dictcn(args) {
 
-        this.super.constructor.call(this, args);
+        this.superclass.constructor.call(this, args);
 
         this.api = 'http://dict.cn/ws.php';
         this.type = 'get';
@@ -152,7 +197,7 @@
         this.model = 'dictcn';
     }
 
-    extend(Dictcn, Query);
+    extend(Dictcn, Dict);
 
     Dictcn.prototype.ajaxLoad = function (client) {
         var xml = client.responseText, json = this.res, elems, elem, i, len, item, parser, reg = /[a-z]\..+?(?=[a-z]\.|$)/gm;
@@ -165,7 +210,6 @@
             elem = xml.getElementsByTagName('audio')[0];
             json.pron = elem ? elem.firstChild.nodeValue : '';
 
-            json.tt = [];
             elem = xml.getElementsByTagName('def')[0];
             if (elem) {
                 elem = elem.firstChild.nodeValue;
@@ -182,31 +226,30 @@
             }
         }
 
-        this.super.ajaxLoad.call(this, client);
+        this.superclass.ajaxLoad.call(this, client);
     };
 
 
     function QQDict(args) {
 
-        this.super.constructor.call(this, args);
+        this.superclass.constructor.call(this, args);
 
         this.api = 'http://dict.qq.com/dict';
         this.type = 'get';
-        this.data = 'q=' + this.word;
+        this.data = 'f=web&q=' + this.word;
         this.model = 'qqdict';
     }
 
-    extend(QQDict, Query);
+    extend(QQDict, Dict);
 
     QQDict.prototype.ajaxLoad = function (client) {
-        var xml = eval('(' + client.responseText + ')'), json = this.res, elems, elem, i, len, item;
+        var xml = JSON.parse(client.responseText), json = this.res, elems, elem, i, len, item;//eval('(' + client.responseText + ')')
         if (xml.local) {
             xml = xml.local[0];
             json.ps = xml.pho ? xml.pho[0] : '';
 
-            //json.pron = elem ? elem.firstChild.nodeValue : '';
+            json.pron = xml.sd ? 'http://speech.dict.qq.com/audio/' + xml.sd.substring(0, 3).split('').join('/') + '/' + xml.sd + '.mp3' : '';
 
-            json.tt = [];
             elems = xml.des;
             if (elems) {
                 for (i = 0, len = elems.length ; i < len ; i += 1) {
@@ -219,13 +262,13 @@
             }
         }
 
-        this.super.ajaxLoad.call(this, client);
+        this.superclass.ajaxLoad.call(this, client);
     };
 
 
     function Bing(args) {
 
-        this.super.constructor.call(this, args);
+        this.superclass.constructor.call(this, args);
 
         this.api = 'http://dict.bing.com.cn/io.aspx';
         this.type = 'post';
@@ -233,7 +276,7 @@
         this.model = 'bing';
     }
 
-    extend(Bing, Query);
+    extend(Bing, Dict);
 
     Bing.prototype.ajaxLoad = function (client) {
         var xml = JSON.parse(client.responseText).ROOT, json = this.res, elems, elem, i, len, j, jLen, item, t;
@@ -242,7 +285,6 @@
 
             json.pron = xml.AH ? 'http://media.engkoo.com:8129/en-us/' + xml.AH.$ + '.mp3' : '';
 
-            json.tt = [];
             elems = xml.DEF[0].SENS;
             if (elems) {
                 if (!elems.length) {elems = [elems]}
@@ -267,84 +309,74 @@
             }
         }
 
-        this.super.ajaxLoad.call(this, client);
-    };
-
-
-
-
-
-    function powerwordT(word, success, error) {
-        ajax(
-            'POST',
-            'http://fy.iciba.com/interface.php',
-            't=auto&content=' + encodeURIComponent(word),
-            function (client) {
-                var json = {key: word, type: 'translate'}, result = client.responseText;
-                if (result) {
-                    json.tt = result;
-                    success(json);
-                }
-                else {
-                    error();
-                }
-            },
-            function (e) {
-                error();
-            }
-        );
+        this.superclass.ajaxLoad.call(this, client);
     }
 
 
-    function baiduT(word, success, error) {
-        ajax(
-            'POST',
-            'http://fanyi.baidu.com/transcontent',
-            'ie=utf-8&source=txt&t=1319299803844&token=6676e72ea0f1a94a7dc95c52a4c46761&from=auto&to=auto&query=' + encodeURIComponent(word),
-            function (client) {
-                var json = {key: word, type: 'translate'}, result = client.responseText;
-                result = JSON.parse(result);
-                if (result.data && result.data.length) {
-                    json.tt = result.data[0].dst
-                    success(json);
-                }
-                else {
-                    error();
-                }
-            },
-            function (e) {
-                error();
-            }
-        );
+    function PowerwordT(args) {
+        this.superclass.constructor.call(this, args);
+
+        this.api = 'http://fy.iciba.com/interface.php';
+        this.type = 'post';
+        this.data = 't=auto&content=' + encodeURIComponent(this.word);
     }
 
-    function youdaoT(word, success, error) {
-        ajax(
-            'POST',
-            'http://fanyi.youdao.com/translate?smartresult=dict&smartresult=rule&smartresult=ugc&sessionFrom=http://dict.youdao.com/',
-            'type=AUTO&doctype=json&xmlVersion=1.4&keyfrom=fanyi.web&ue=UTF-8&typoResult=true&flag=false&i=' + encodeURIComponent(word),
-            function (client) {
-                var json = {key: word, type: 'translate'}, result = client.responseText, i, len, item;
-                result = JSON.parse(result);
-                if (result.translateResult.length) {
-                    json.tt = '';
-                    for (i = 0, len = result.translateResult[0].length ; i < len ; i += 1) {
-                        json.tt += result.translateResult[0][i].tgt
-                    }
-                    success(json);
-                }
-                else {
-                    error();
-                }
-            },
-            function (e) {
-                error();
-            }
-        );
+    extend(PowerwordT, Query);
+
+    PowerwordT.prototype.ajaxLoad = function (client) {
+        var result = client.responseText;
+        if (result) {
+            this.res.tt = [{pos: '', acceptation: result}];
+        }
+        this.superclass.ajaxLoad.call(this, client);
     }
 
-    function googleT(word, success, error) {
-        var zh =/[\u4e00-\u9fa5]/.test(word), sl, tl;
+
+    function BaiduT(args) {
+        this.superclass.constructor.call(this, args);
+
+        this.api = 'http://fanyi.baidu.com/transcontent';
+        this.type = 'post';
+        this.data = 'ie=utf-8&source=txt&t=1319299803844&token=6676e72ea0f1a94a7dc95c52a4c46761&from=auto&to=auto&query=' + encodeURIComponent(this.word);
+    }
+
+    extend(BaiduT, Query);
+
+    BaiduT.prototype.ajaxLoad = function (client) {
+        var result = JSON.parse(client.responseText);
+        if (result.data && result.data.length) {
+            this.res.tt = [{pos: '', acceptation: result.data[0].dst}];
+        }
+        this.superclass.ajaxLoad.call(this, client);
+    }
+
+    function YoudaoT(args) {
+        this.superclass.constructor.call(this, args);
+
+        this.api = 'http://fanyi.youdao.com/translate?smartresult=dict&smartresult=rule&smartresult=ugc&sessionFrom=http://dict.youdao.com/';
+        this.type = 'post';
+        this.data = 'type=AUTO&doctype=json&xmlVersion=1.4&keyfrom=fanyi.web&ue=UTF-8&typoResult=true&flag=false&i=' + encodeURIComponent(this.word);
+    }
+
+    extend(YoudaoT, Query);
+
+    YoudaoT.prototype.ajaxLoad = function (client) {
+        var result = JSON.parse(client.responseText).translateResult, i, len, acceptation;
+        if (result.length) {
+            acceptation = '';
+            for (i = 0, len = result[0].length ; i < len ; i += 1) {
+                acceptation += result[0][i].tgt
+            }
+            this.res.tt = [{pos: '', acceptation: acceptation}];
+        }
+        this.superclass.ajaxLoad.call(this, client);
+    }
+
+
+    function GoogleT(args) {
+        this.superclass.constructor.call(this, args);
+
+        var zh =/[\u4e00-\u9fa5]/.test(this.word), sl, tl;
         if (zh) {
             sl = 'zh-CN';
             tl = 'en';
@@ -353,25 +385,21 @@
             sl = 'en';
             tl = 'zh-CN';
         }
-        ajax(
-            'GET',
-            'http://translate.google.com/translate_a/t',
-            'client=t&hl=zh-CN&sl='+sl+'&tl='+tl+'&text=' + encodeURIComponent(word),
-            function (client) {
-                var json = {key: word, type: 'translate'}, result = client.responseText, i, len, item;
-                result = eval('(' + result + ')');
-                if (result[0]) {
-                    json.tt = result[0][0][0];
-                    success(json);
-                }
-                else {
-                    error();
-                }
-            },
-            function (e) {
-                error();
-            }
-        );
+
+        this.api = 'http://translate.google.com/translate_a/t';
+        this.type = 'get';
+        this.data = 'client=t&hl=zh-CN&sl='+sl+'&tl='+tl+'&text=' + encodeURIComponent(this.word);
+    }
+
+    extend(GoogleT, Query);
+
+    GoogleT.prototype.ajaxLoad = function (client) {
+        var result = client.responseText;
+        result = eval('(' + result + ')');
+        if (result[0]) {
+            this.res.tt = [{pos: '', acceptation: result[0][0][0]}];
+        }
+        this.superclass.ajaxLoad.call(this, client);
     }
 
 
@@ -384,10 +412,10 @@
         },
 
         translate: {
-            powerword: powerwordT,
-            baidu: baiduT,
-            youdao: youdaoT,
-            google: googleT
+            powerword: PowerwordT,
+            baidu: BaiduT,
+            youdao: YoudaoT,
+            google: GoogleT
         }
     }
 })(this, this.document);

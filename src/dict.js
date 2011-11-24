@@ -1,6 +1,6 @@
 (function (window, document, undefined) {
 
-    var extend = function (childCtor, parentCtor) {
+    function extend(childCtor, parentCtor) {
         function tempCtor() {};
         tempCtor.prototype = parentCtor.prototype;
         childCtor.prototype = new tempCtor();
@@ -8,13 +8,37 @@
         childCtor.prototype.constructor = childCtor;
     }
 
-    var proxy = function (fn, obj) {
+    function proxy(fn, obj) {
         return function () {
             return fn.apply(obj, arguments);
         }
     }
 
-    if (window.viclmChromeDictForGina) {return}
+    function delegate(node, selector, type, handler) {
+        node.delegate || (node.delegate = {});
+        node.delegate[selector] = {handler: handler};
+        delegate.nodeList || (delegate.nodeList = []);
+        if (delegate.nodeList.indexOf(node) === -1) {
+            node.addEventListener(type, function (e) {
+                var target = e.target, key, tmp;
+                do {
+                    for (key in node.delegate) {
+                        tmp = node.delegate[key];
+                        if (Array.prototype.indexOf.call(node.querySelectorAll(key), target) > -1) {
+                            delete e.target;
+                            e.target = target;
+                            tmp.handler.call(target, e);
+                            return;
+                        }
+                    }
+                    target = target.parentNode;
+                }
+                while (target && target !== this);
+            }, false);
+            delegate.nodeList.push(node);
+        }
+    }
+
 
     function Dict (args) {
         args = args || {};
@@ -25,7 +49,7 @@
         this.assistKey = args.assistKey || null;
         this.speed = args.speed || 50;
         this.skin = args.skin || 'orange';
-        this.ui = this.createUI();
+        this.ui = null;
         this.port = chrome.extension.connect({name: 'dict'});
 
         this.rHasWord = /\b[a-z]+([-'][a-z]+)*\b/i;
@@ -91,8 +115,9 @@
                 this.capture(e);
             }
         }
-        else if (this.endPos === null) {
-            this.ui.style.display = 'none';
+        else if (this.ui) {//this.endPos === null && 
+            document.body.removeChild(this.ui);
+            this.ui = null;
         }
     };
 
@@ -178,18 +203,18 @@
                 }
             }
         }
+        else if (this.ui) {
+            document.body.removeChild(this.ui);
+            this.ui = null;
+        }
         parent.resolve = true;
-        this.ui.style.display = 'none';
     };
 
     Dict.prototype.capture = function (e) {
         this.node = null;
         this.text = window.getSelection().toString();
-        this.text = this.text.trim()//.replace(/^\W+$/, '').replace(/^\d+$/, '');
+        this.text = this.text.trim();
         if (this.text.length > 0) {
-            //this.x = e.pageX - (!this.endPos ? 0 : (this.endPos - this.startPos) / 2);
-            //this.y = e.pageY;
-            //this.fontSize = parseInt(getComputedStyle(e.target, null).getPropertyValue('font-size'), 10) * 1.2;
             this.handle(e);
         }
     };
@@ -203,57 +228,15 @@
         }
     };
 
-    Dict.prototype.createUI = function () {};
-
 
 
 
 
     function DictSimple(args) {
         this.super.constructor.call(this, args);
-
-        this.uiKey = this.ui.querySelector('h1');
-        this.uiPs = this.ui.querySelector('header span');
-        this.uiPronBtn = this.ui.querySelector('header canvas');
-        this.uiPron = this.ui.querySelector('header audio');
-        this.uiTrans = this.ui.querySelector('ul');
-        this.uiTriangle = this.ui.querySelector('div:last-of-type');
     }
 
     extend(DictSimple, Dict);
-
-    DictSimple.prototype.createUI = function () {
-        var aside = document.createElement('aside'), header, uiPronBtn, uiPron, triangle;
-        aside.id = 'dict-viclm-simple';
-        aside.className = this.skin;
-
-        header = document.createElement('header');
-        header.appendChild(document.createElement('h1'));
-        header.appendChild(document.createElement('span'));
-        uiPronBtn = this.drawAlert(300, 300);
-        uiPronBtn.style.cssText = 'width: 12px; height: 12px;';
-        header.appendChild(uiPronBtn);
-        uiPron = document.createElement('audio');
-        header.appendChild(uiPron);
-        uiPronBtn.addEventListener('click', function () {
-            uiPron.play();
-        }, false);
-        aside.appendChild(header);
-
-        aside.appendChild(document.createElement('ul'));
-
-        triangle = document.createElement('div');
-        triangle.className = 'down';
-        aside.appendChild(triangle);
-
-        document.body.appendChild(aside);
-        aside.style.display = 'none';
-        aside.addEventListener('mousedown', this.eventClear, false);
-        aside.addEventListener('mouseover', this.eventClear, false);
-        aside.addEventListener('mouseup', this.eventClear, false);
-        aside.addEventListener('click', this.eventClear, false);
-        return aside;
-    };
 
     DictSimple.prototype.drawAlert = function (w, h) {
         var canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
@@ -289,36 +272,31 @@
     };
 
     DictSimple.prototype.show = function (data) {
-        var i, len, item, ul, li;
+        var i, len, str = '';
         if (data.key === this.text) {
-            if ('tt' in data) {
-                if (data.type === 'translate') {
-                    this.uiKey.parentNode.style.display = 'none';
-                    this.uiTrans.innerHTML = data.tt;
-                }
-                else {
-                    this.uiKey.parentNode.style.display = 'block';
-                    this.uiKey.innerHTML = this.text;
-                    this.uiPs.innerHTML = data.ps === '' ? '' : '[' + data.ps + ']';
-                    this.uiPron.src = data.pron;
-                    this.uiPronBtn.style.display = data.pron === '' ?  'none' : '';
-                    this.uiTrans.innerHTML = '';
-
-                    for (i = 0, len = data.tt.length ; i < len ; i += 1) {
-                        item = data.tt[i];
-                        li = document.createElement('li');
-                        li.innerHTML = item.pos + ' ' + item.acceptation;
-                        this.uiTrans.appendChild(li);
-                    }
-
-                }
+            this.ui = document.createElement('aside');
+            this.ui.id = 'dict-viclm-simple';
+            this.ui.className = this.skin;
+            str += '<header><h1>' + data.key + '</h1>';
+            if (data.ps) {
+                str += '<span>[ ' + data.ps + ' ]</span>';
             }
-            else {
-                this.uiKey.parentNode.style.display = 'none';
-                this.uiTrans.innerHTML = '查询不到结果';
+            if (data.pron) {
+                str += '<img src="' + this.drawAlert(300, 300).toDataURL() + '"><audio src="' + data.pron + '"></audio>';
             }
+            str += '</header>';
+            for (i = 0, len = data.tt.length ; i < len ; i += 1) {
+                str += '<p><span>' + data.tt[i].pos + '.</span> ' + data.tt[i].acceptation + '</p>';
+            }
+            str += '<div class="down"></div>';
 
-            this.ui.style.display = '';
+            this.ui.innerHTML = str;
+            document.body.appendChild(this.ui);
+            this.ui.addEventListener('mouseover', this.eventClear, false);
+            this.ui.addEventListener('click', this.eventClear, false);
+            delegate(this.ui, 'img', 'click', function () {
+                this.nextSibling.play();
+            });
             this.position();
         }
     };
@@ -333,7 +311,7 @@
             clientRectForNode = this.node.getBoundingClientRect();
         }
         else {
-			clientRectForNode = window.getSelection().getRangeAt(0).getBoundingClientRect();
+            clientRectForNode = window.getSelection().getRangeAt(0).getBoundingClientRect();
         }
 
         this.x = clientRectForNode.left + document.body.scrollLeft;
@@ -362,8 +340,8 @@
         }
         this.ui.style.left = left + 'px';
         this.ui.style.top = top + 'px';
-        this.uiTriangle.style.left = triangleLeft + 'px';
-        this.uiTriangle.className = triangleClass;
+        this.ui.querySelector('div').style.left = triangleLeft + 'px';
+        this.ui.querySelector('div').className = triangleClass;
     };
 
     var dict;
@@ -377,7 +355,6 @@
             hoverCapture: response.hoverCapture,
             dragCapture: response.dragCapture
         });
-        window.viclmChromeDictForGina = true;
     });
 
     chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {

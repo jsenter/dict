@@ -9,10 +9,8 @@ nav > div:first-child {margin-bottom: 5px;}
 nav a.active{background-color: #f7f7f7; border-radius: 5px; border: 1px solid #c7c7c7; padding:0px 2px;}
 nav .disabled {display: none;}
 section {padding: 10px; min-height: 130px;}
-p {color: grey; margin: 5px 0;}
+p {margin: 5px 0;}
 span {color: grey;}
 img {width: 10px; height: 10px; margin-left: 5px; cursor: pointer;}
 footer {text-align: center;}
 footer a {background: url(../../assets/green.png) no-repeat 0 50%; padding-left: 20px; margin-left: 10px;}
-ul {list-style-type: none; padding:0; line-height: 18px; margin: 0;}
-li {margin-top: 2px;}

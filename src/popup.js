@@ -27,12 +27,7 @@
             }
         }
         else if (msg.key === searchbox.value.trim()) {
-            if (msg.type === 'translate') {
-                content.innerHTML = '<h2>' + msg.key + '</h2><p>' + msg.tt + '</p>';
-            }
-            else {
-                content.innerHTML = tmpl(msg);
-            }
+            content.innerHTML = tmpl(msg);
         }
     });
 
@@ -42,20 +37,12 @@
         if (data.pron) {
             str += '<img src="' + drawAlert(300, 300).toDataURL() + '"><audio src="' + data.pron + '"></audio>';
         }
-        str += '</h2>';
         if (data.ps) {
-            str += '<p>[ ' + data.ps + ' ]</p>';
+            str += '<p><span>[ ' + data.ps + ' ]</span></p>';
         }
-        str += '<ul>';
-        if (data.tt) {
-            for (i = 0, len = data.tt.length ; i < len ; i += 1) {
-                str += '<li><span>' + data.tt[i].pos + '.</span> ' + data.tt[i].acceptation + '</li>';
-            }
+        for (i = 0, len = data.tt.length ; i < len ; i += 1) {
+            str += '<p><span>' + data.tt[i].pos + '.</span> ' + data.tt[i].acceptation + '</p>';
         }
-        else {
-            str += '<li>查询不到结果</li>';
-        }
-        str += '</ul>';
         return str;
     }
 

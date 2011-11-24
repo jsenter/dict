@@ -72,17 +72,18 @@
     margin-left: 3px;
 }
 
-#dict-viclm-simple header canvas {
+#dict-viclm-simple header img {
     margin-left: 3px;
     cursor: pointer;
     vertical-align: center;
     position: relative;
-    top: 2px;
+    top: 0;
+    width: 10px;
+    height: 10px;
 }
 
-#dict-viclm-simple ul {
-    list-style-type: none;
-}
+#dict-viclm-simple p {margin: 1px 0;}
+#dict-viclm-simple span {color: grey;}
 
 /* creates triangle */
 #dict-viclm-simple  div:last-of-type {

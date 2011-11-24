@@ -99,24 +99,18 @@
             if (type === 'dict') {
                 new dictapi.dict[dict]({
                     word: key,
-                    load: function (json) {
+                    loadend: function (json) {
                         port.postMessage(json);
-                    },
-                    error: function (json) {
-                        port.postMessage({key: key});
                     }
                 }).query();
             }
             else {
-                dictapi.translate[dict](
-                    key,
-                    function (json) {
+                new dictapi.translate[dict]({
+                    word: key,
+                    loadend: function (json) {
                         port.postMessage(json);
-                    },
-                    function (word) {
-                        port.postMessage({key: key});
                     }
-                );
+                }).query();
             }
         }
         else {
@@ -128,7 +122,7 @@
                         status = 'complete';
                         port.postMessage(json);
                     },
-                    error: function () {
+                    error: function (json) {
                         if (assistRes) {
                             port.postMessage(assistRes);
                             status = 'complete';
@@ -139,32 +133,29 @@
                     }
                 }).query();
 
-                dictapi.translate[localStorage.translate](
-                    key,
-                    function (json) {
+                new dictapi.translate[localStorage.translate]({
+                    word: key,
+                    load: function (json) {
                         assistRes = json;
                         if (status === 'error') {
                             port.postMessage(json);
                         }
                     },
-                    function (word) {
+                    error: function (json) {
                         assistRes = {key: key};
                         if (status === 'error') {
-                            port.postMessage({key: key});
+                            port.postMessage(json);
                         }
                     }
-                );
+                }).query();
             }
             else {
-                dictapi.translate[localStorage.translate](
-                    key,
-                    function (json) {
+                new dictapi.translate[localStorage.translate]({
+                    word: key,
+                    loadend: function (json) {
                         port.postMessage(json);
-                    },
-                    function (word) {
-                        port.postMessage({key: key});
                     }
-                );
+                }).query();
             }
         }
     }
