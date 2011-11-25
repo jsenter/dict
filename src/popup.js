@@ -41,7 +41,7 @@
             str += '<p><span>[ ' + data.ps + ' ]</span></p>';
         }
         for (i = 0, len = data.tt.length ; i < len ; i += 1) {
-            str += '<p><span>' + data.tt[i].pos + '.</span> ' + data.tt[i].acceptation + '</p>';
+            str += '<p><span>' + data.tt[i].pos + '</span> ' + data.tt[i].acceptation + '</p>';
         }
         return str;
     }
@@ -136,7 +136,7 @@
     delegate(dict, 'a', 'click', function (e) {
         var target = this;
         if (target.className !== 'active') {
-            dict.querySelector('.active').className = '';
+            if (dict.querySelector('.active')) {dict.querySelector('.active').className = '';}
             target.className = 'active';
             if (target.parentNode.id === 'dict') {
                 dictCurrent = target.rel;

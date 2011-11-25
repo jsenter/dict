@@ -1,7 +1,7 @@
 (function (window, document, undefined) {
 
     function ajax(method, url, data, success, error, timeout) {
-        var client = new XMLHttpRequest(), isTimeout = false;
+        var client = new XMLHttpRequest(), isTimeout = false, isComplete = false;
         method = method.toLowerCase();
         if (method === 'get' && data) {
             url += '?' + data;
@@ -14,15 +14,20 @@
             else {
                 error(client);
             }
+            isComplete = true;
         };
         client.onerror = function () {
             error(client);
+            isComplete = true;
         };
         client.open(method, url, true);
         if (method === 'post') {client.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');}
         client.setRequestHeader('ajax', 'true');
         client.send(data);
-        setTimeout(function () {isTimeout = true;}, timeout || 2000);
+        setTimeout(function () {
+            isTimeout = true;
+            if (isComplete) {error(client);}
+        }, timeout || 2000);
     };
 
     function extend(childCtor, parentCtor) {
@@ -113,7 +118,9 @@
         database.transaction(function (tx) {
             tx.executeSql('SELECT * FROM dicty WHERE word=? AND api=?', [self.word, self.model], function (tx, result) {
                 if (result.rows.length > 0) {
-                    self.load(JSON.parse(result.rows.item(0).content));
+                    self.res = JSON.parse(result.rows.item(0).content);
+                    self.load(self.res);
+                    self.loadend(self.res);
                 }
                 else {
                     ajax(self.type, self.api, self.data, proxy(self.ajaxLoad, self), proxy(self.ajaxError, self));
@@ -200,7 +207,7 @@
     extend(Dictcn, Dict);
 
     Dictcn.prototype.ajaxLoad = function (client) {
-        var xml = client.responseText, json = this.res, elems, elem, i, len, item, parser, reg = /[a-z]\..+?(?=[a-z]\.|$)/gm;
+        var xml = client.responseText, json = this.res, elems, elem, i, len, item, parser, reg = /[a-z]\..+?(?=[a-z]\.|$)/gm, reg2 = /^[a-z]+?\./i;
         if (xml) {
             parser = new DOMParser();
             xml = parser.parseFromString(xml,"text/xml");
@@ -212,14 +219,14 @@
 
             elem = xml.getElementsByTagName('def')[0];
             if (elem) {
-                elem = elem.firstChild.nodeValue;
-                elems = elem.match(reg);
+                elems = elem.firstChild.nodeValue.split('\n');
                 if (elems) {
                     for (i = 0, len = elems.length ; i < len ; i += 1) {
-                        item = elems[i];
                         json.tt.push({
                             pos: '',
-                            acceptation: elems[i]
+                            acceptation: elems[i].replace(reg2, function (str) {
+                                return '<span>' + str + '</span>';
+                            })
                         });
                     }
                 }
@@ -255,7 +262,7 @@
                 for (i = 0, len = elems.length ; i < len ; i += 1) {
                     item = elems[i];
                     json.tt.push({
-                        pos: item.p,
+                        pos: (item.p ? item.p : ''),
                         acceptation: item.d
                     });
                 }
@@ -302,7 +309,7 @@
                     }
 
                     json.tt.push({
-                        pos: item.$POS,
+                        pos: item.$POS + '.',
                         acceptation: t
                     });
                 }

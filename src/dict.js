@@ -115,18 +115,22 @@
                 this.capture(e);
             }
         }
-        else if (this.ui) {//this.endPos === null && 
+        /*else if (this.ui) {//this.endPos === null && 
             document.body.removeChild(this.ui);
             this.ui = null;
-        }
+        }*/
     };
 
     Dict.prototype.dragStart = function (e) {
-		document.dictonmouseup = proxy(this.dragEnd, this);
-		document.addEventListener('mouseup', document.dictonmouseup, false);
+        document.dictonmouseup = proxy(this.dragEnd, this);
+        document.addEventListener('mouseup', document.dictonmouseup, false);
         this.startPos = e.pageX;
         this.endPos = null;
         this.onDrag = true;
+        if (this.ui) {
+            document.body.removeChild(this.ui);
+            this.ui = null;
+        }
     };
 
     Dict.prototype.dragEnd = function (e) {
@@ -137,7 +141,7 @@
             }
         }
         this.onDrag = false;
-		document.removeEventListener('mouseup', document.dictonmouseup, false);
+        document.removeEventListener('mouseup', document.dictonmouseup, false);
     };
 
     Dict.prototype.hoverTrigger = function (e) {
@@ -146,7 +150,7 @@
 
         if (this.assistKey && (e.altKey !== this.assistKey.altKey || e.ctrlKey !== this.assistKey.ctrlKey)) {return;}
 
-		if (e.target.nodeName.toLowerCase() === 'textarea') {return;}
+        if (e.target.nodeName.toLowerCase() === 'textarea') {return;}
 
         if (this.timer === null) {
             this.hoverHanlder(e);
@@ -158,13 +162,16 @@
         clearTimeout(this.timer);
         this.timer = setTimeout(proxy(function () {
             if (this.hoverX === e.pageX && this.hoverY === e.pageY) {
-                //this.timer = null;
                 this.hoverHanlder(e);
             }
         }, this), this.speed * 20);
     };
 
     Dict.prototype.hoverHanlder = function (e) {
+        if (this.ui) {
+            document.body.removeChild(this.ui);
+            this.ui = null;
+        }
         this.text = null;
         this.timer = undefined;
         var parent = e.target, elems, wraper, i, len, elem, next;
@@ -203,20 +210,13 @@
                 }
             }
         }
-        else if (this.ui) {
-            document.body.removeChild(this.ui);
-            this.ui = null;
-        }
         parent.resolve = true;
     };
 
     Dict.prototype.capture = function (e) {
         this.node = null;
-        this.text = window.getSelection().toString();
-        this.text = this.text.trim();
-        if (this.text.length > 0) {
-            this.handle(e);
-        }
+        this.text = window.getSelection().toString().trim();
+        this.handle(e);
     };
 
     Dict.prototype.handle = function (e, type) {
@@ -274,6 +274,14 @@
     DictSimple.prototype.show = function (data) {
         var i, len, str = '';
         if (data.key === this.text) {
+            if (!this.node && window.getSelection().toString().trim() !== this.text) {
+                this.text = '';
+                return;
+            }
+            if (this.ui) {
+                document.body.removeChild(this.ui);
+                this.ui = null;
+            }
             this.ui = document.createElement('aside');
             this.ui.id = 'dict-viclm-simple';
             this.ui.className = this.skin;
@@ -286,14 +294,14 @@
             }
             str += '</header>';
             for (i = 0, len = data.tt.length ; i < len ; i += 1) {
-                str += '<p><span>' + data.tt[i].pos + '.</span> ' + data.tt[i].acceptation + '</p>';
+                str += '<p><span>' + data.tt[i].pos + '</span> ' + data.tt[i].acceptation + '</p>';
             }
             str += '<div class="down"></div>';
 
             this.ui.innerHTML = str;
             document.body.appendChild(this.ui);
             this.ui.addEventListener('mouseover', this.eventClear, false);
-            this.ui.addEventListener('click', this.eventClear, false);
+            this.ui.addEventListener('mousedown', this.eventClear, false);
             delegate(this.ui, 'img', 'click', function () {
                 this.nextSibling.play();
             });

@@ -142,7 +142,7 @@
                         }
                     },
                     error: function (json) {
-                        assistRes = {key: key};
+                        assistRes = json;
                         if (status === 'error') {
                             port.postMessage(json);
                         }
