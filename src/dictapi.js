@@ -8,17 +8,21 @@
             data = null;
         }
         client.onload = function () {
-            if (!isTimeout && ((client.status >= 200 && client.status < 300) || client.status == 304)) {
-                success(client);
+            if (!isComplete) {
+                if (!isTimeout && ((client.status >= 200 && client.status < 300) || client.status == 304)) {
+                    success(client);
+                }
+                else {
+                    error(client);
+                }
+                isComplete = true;
             }
-            else {
-                error(client);
-            }
-            isComplete = true;
         };
         client.onerror = function () {
-            error(client);
-            isComplete = true;
+            if (!isComplete) {
+                error(client);
+                isComplete = true;
+            }
         };
         client.open(method, url, true);
         if (method === 'post') {client.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');}
@@ -26,9 +30,13 @@
         client.send(data);
         setTimeout(function () {
             isTimeout = true;
-            if (isComplete) {error(client);}
+            if (!isComplete) {
+                client.timeout = true;
+                error(client);
+                isComplete = true;
+            }
         }, timeout || 2000);
-    };
+    }
 
     function extend(childCtor, parentCtor) {
         var fnTest = /\bsuperclass\b/, parent = parentCtor.prototype
