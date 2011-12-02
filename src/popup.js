@@ -3,33 +3,44 @@
     searchbox = document.querySelector('textarea'),
     dict = document.querySelector('nav'),
     content = document.querySelector('section'),
-    btnHover = document.getElementById('hover'),
-    btnDrag = document.getElementById('drag'),
+    btnCapure = document.querySelectorAll('footer a'),
+    setting = JSON.parse(localStorage.capture),
     rSingleWord = /^[a-z]+([-'][a-z]+)*$/i,
     dictCurrent = localStorage.mainDict,
     translateCurrent = localStorage.translate;
 
-    port.postMessage({cmd: 'getCaptureMode'});
     port.onMessage.addListener(function (msg) {
-        if (msg.cmd === 'setCaptureMode') {
-            if (msg.dragCapture) {
-                btnDrag.style.backgroundImage = 'url(../../assets/green.png)';
-            }
-            else {
-                btnDrag.style.backgroundImage = 'url(../../assets/red.png)';
-            }
-
-            if (msg.hoverCapture) {
-                btnHover.style.backgroundImage = 'url(../../assets/green.png)';
-            }
-            else {
-                btnHover.style.backgroundImage = 'url(../../assets/red.png)';
-            }
-        }
-        else if (msg.key === searchbox.value.trim()) {
+        if (msg.key === searchbox.value.trim()) {
             content.innerHTML = tmpl(msg);
         }
     });
+
+    for (var i = 0 ; i < btnCapure.length ; i += 1) {
+        if (setting[i].status) {
+            btnCapure[i].style.backgroundImage = 'url(../../assets/green.png)';
+        }
+        else {
+            btnCapure[i].style.backgroundImage = 'url(../../assets/red.png)';
+        }
+        btnCapure[i].addEventListener('click', setCaptureMode, false);
+        btnCapure[i].dataset.index = i;
+    }
+
+    function setCaptureMode(e) {
+
+        if (/green\.png\)$/.test(this.style.backgroundImage)) {
+            setting[this.dataset.index].status = false;
+            this.style.backgroundImage = 'url(../../assets/red.png)';
+        }
+        else {
+            setting[this.dataset.index].status = true;
+            this.style.backgroundImage = 'url(../../assets/green.png)';
+        }
+
+        localStorage.capture = JSON.stringify(setting);
+
+        port.postMessage({cmd: 'setCaptureMode', capture: setting});
+    }
 
     function tmpl(data) {
         var str = '', i, len;
@@ -75,26 +86,6 @@
         return canvas;
     }
 
-    function setCaptureMode(e) {
-        var reg = /green\.png\)$/;
-            dragCapture = reg.test(btnDrag.style.backgroundImage),
-            hoverCapture = reg.test(btnHover.style.backgroundImage);
-
-        if (e.target.id === 'drag') {
-            dragCapture = !dragCapture;
-        }
-        else {
-            hoverCapture = !hoverCapture;
-        }
-
-        port.postMessage({
-            cmd: 'setCaptureMode',
-            dragCapture: dragCapture,
-            hoverCapture: hoverCapture
-        });
-    }
-    btnHover.addEventListener('click', setCaptureMode, false);
-    btnDrag.addEventListener('click', setCaptureMode, false);
 
     searchbox.focus();
     searchbox.addEventListener('input', function (e) {

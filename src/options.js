@@ -1,12 +1,8 @@
-(function () {
-    var mainview;
+(function (window, document, undefined) {
+    var mainview = document.getElementById('mainview');
 
-    function init() {
-        mainview = document.getElementById('mainview');
-
-        uiEnhance();
-        restoreOptions();
-    }
+    uiEnhance();
+    restoreOptions();
 
     function uiEnhance() {
         var elements, elem, i, len;
@@ -15,40 +11,13 @@
         for (i = 0, len = elements.length ; i < len ; i += 1) {
             elements[i].addEventListener('click', navTab, false);
         }
-        //save options
-        elements = mainview.querySelectorAll('#skinSection label');
-        for (i = 0, len = elements.length ; i < len ; i += 1) {
-            elements[i].addEventListener('click', saveOptions, false);
-        }
-        //check switch
-        elements = mainview.querySelectorAll('#hotKeySection label:only-child, #hoverSection label');
-        for (i = 0, len = elements.length ; i < len ; i += 1) {
-            elements[i].addEventListener('click', checkSwitchClickHanlder, false);
-        }
-        //dict
-        elements = mainview.querySelectorAll('#dictSection select');
-        for (i = 0, len = elements.length ; i < len ; i += 1) {
-            elements[i].addEventListener('change', setDict, false);
-        }
-        //speed
-        elements = mainview.querySelectorAll('#hoverSection input[type=range]');
-        for (i = 0, len = elements.length ; i < len ; i += 1) {
-            elements[i].addEventListener('change', setSpeed, false);
-        }
-        //assist key
-        elements = mainview.querySelectorAll('#assistKeySection select');
-        for (i = 0, len = elements.length ; i < len ; i += 1) {
-            elements[i].addEventListener('change', setAssistKey, false);
-        }
-        //hot key
-        elements = mainview.querySelectorAll('#hotKeySection input[type=text]');
-        for (i = 0, len = elements.length ; i < len ; i += 1) {
-            elem = elements[i];
-            elem.addEventListener('keyup', setHotKey, false);
-            elem.addEventListener('keydown', function (e) {
-                e.preventDefault();
-            }, false);
-        }
+
+        delegate(document.getElementById('skinSection'), 'input', 'click', save);
+        delegate(document.getElementById('dictSection'), 'select', 'change', save);
+
+        var captureSection = document.getElementById('captureSection');
+        delegate(captureSection, 'input', 'click', saveCapture);
+        delegate(captureSection, 'select', 'change', saveCapture);
     }
 
     function navTab() {
@@ -62,63 +31,28 @@
     }
     navTab.last = 'browserPageNav';
 
-    function checkSwitch(controller, depend) {
-        var i = 0, len = depend.length;
-        if (controller.checked) {
-            for (; i < len ; i += 1) {
-                depend[i].disabled = true;
-            }
-        }
-        else {
-            for (; i < len ; i += 1) {
-                depend[i].disabled = false;
-            }
-        }
-    }
-
-    function checkSwitchClickHanlder(e) {
-        var target = e.target;
-        //fix label tansform event to inner input
-        if (target.nodeName === 'INPUT') {
-            //this.dispatchEvent(checkSwitchEvent);
-            if (target.name === 'hotKeySwitch') {
-                checkSwitch(target, target.parentNode.parentNode.parentNode.querySelectorAll('input[type=text]'));
-                if (target.checked) {
-                    localStorage[target.name] = '0';
-                }
-                else {
-                    localStorage[target.name] = '1';
-                }
-            }
-			else {
-                if (target.checked) {
-                    localStorage[target.name] = '1';
-                }
-                else {
-                    localStorage[target.name] = '0';
-                }
-			}
-        }
-    }
-
     // Saves options to localStorage.
-    function saveOptions(e) {
-        var input = e.target;
-        if (input.nodeName === 'INPUT' && input.checked) {
-            localStorage[input.name] = input.value;
+    function save(e) {
+        var node = e.target;
+        if (node.nodeName === 'INPUT' && node.checked) {
+            localStorage[node.name] = node.value;
+        }
+        else if (node.nodeName === 'SELECT') {
+            localStorage[node.name] = node.value;
         }
     }
 
-    function setDict(e) {
-        localStorage[e.target.name] = e.target.value;
-    }
-
-    function setSpeed() {
-        localStorage.speed = this.value;
-    }
-
-    function setAssistKey(e) {
-        localStorage.assistKey = this.value;
+    function saveCapture(e) {
+        var node = e.target,
+            setting = JSON.parse(localStorage.capture),
+            tr = Array.prototype.slice.call(document.querySelectorAll('#captureSection tbody tr'), 0);
+        if (node.nodeName === 'INPUT') {
+            setting[tr.indexOf(node.parentNode.parentNode)].status = node.checked;
+        }
+        else if (node.nodeName === 'SELECT') {
+            setting[tr.indexOf(node.parentNode.parentNode)].assistKey = node.value;
+        }
+        localStorage.capture = JSON.stringify(setting);
     }
 
     function setHotKey(e) {
@@ -138,17 +72,17 @@
             for (i in hotKeys) {
                 if (hotKeys[i]) {
                     switch (i) {
-                        case 'ctrlKey':
-                            key = 'CTRL';
+                    case 'ctrlKey':
+                        key = 'CTRL';
                         break;
-                        case 'altKey':
-                            key = 'ALT';
+                    case 'altKey':
+                        key = 'ALT';
                         break;
-                        case 'shiftKey':
-                            key = 'SHIFT';
+                    case 'shiftKey':
+                        key = 'SHIFT';
                         break;
-                        case 'metaKey':
-                            key = 'META';
+                    case 'metaKey':
+                        key = 'META';
                         break;
                     }
                     value += '+' + key;
@@ -171,9 +105,9 @@
 
     // Restores select box state to saved value from localStorage.
     function restoreOptions() {
-        var i, len, elements, elem;
+        var i, len, elements, elem, setting, set;
 
-        elements = mainview.querySelectorAll('input[type=radio]');
+        elements = mainview.querySelectorAll('#skinSection input');
         for (i = 0, len = elements.length ; i < len ; i += 1) {
             elem = elements[i];
             if (elem.value === localStorage[elem.name]) {
@@ -184,45 +118,46 @@
             }
         }
 
-        elements = mainview.querySelectorAll('input[type=checkbox]');
-        for (i = 0, len = elements.length ; i < len ; i += 1) {
-            elem = elements[i];
-            if (localStorage[elem.name] === elem.value) {
-                elem.checked = true;
-            }
-            else {
-                elem.checked = false;
-            }
-            checkSwitch(elem, elem.parentNode.parentNode.parentNode.querySelectorAll('input[type=text]'));
-        }
-
         elements = mainview.querySelectorAll('#dictSection select');
         for (i = 0, len = elements.length ; i < len ; i += 1) {
             elem = elements[i];
             elem.querySelector('option[value=' + localStorage[elem.name] + ']').selected = true;
-            setDict.call(elem, {target: elem});
-        }
-
-        elements = mainview.querySelectorAll('#hoverSection input[type=range]');
-        for (i = 0, len = elements.length ; i < len ; i += 1) {
-            elem = elements[i];
-            elem.value = localStorage.speed;
-        }
-
-        elements = mainview.querySelectorAll('#assistKeySection select');
-        for (i = 0, len = elements.length ; i < len ; i += 1) {
-            elem = elements[i];
-            elem.querySelector('option[value=' + localStorage.assistKey + ']').selected = true;
         }
 
 
-        //hot key
-        elements = mainview.querySelectorAll('#hotKeySection input[type=text]');
+        elements = mainview.querySelectorAll('#captureSection tbody tr');
+        setting = JSON.parse(localStorage.capture);
         for (i = 0, len = elements.length ; i < len ; i += 1) {
             elem = elements[i];
-            setHotKey.call(elem, JSON.parse(localStorage[elem.name]));
+            set = setting[i];
+            elem.querySelector('input').checked = set.status;
+            elem.querySelector('select').value = set.assistKey;
         }
     }
 
-    document.addEventListener('DOMContentLoaded', init, false);
-})();
+    function delegate(node, selector, type, handler) {
+        node.delegate || (node.delegate = {});
+        node.delegate[selector] = {handler: handler};
+        delegate.nodeList || (delegate.nodeList = []);
+        if (delegate.nodeList.indexOf(node) === -1) {
+            node.addEventListener(type, function (e) {
+                var target = e.target, key, tmp;
+                do {
+                    for (key in node.delegate) {
+                        tmp = node.delegate[key];
+                        if (Array.prototype.indexOf.call(node.querySelectorAll(key), target) > -1) {
+                            delete e.target;
+                            e.target = target;
+                            tmp.handler.call(target, e);
+                            return;
+                        }
+                    }
+                    target = target.parentNode;
+                }
+                while (target && target !== this);
+            }, false);
+            delegate.nodeList.push(node);
+        }
+    }
+
+})(this, this.document);

@@ -11,7 +11,6 @@ input[type="text"]{
     padding: 1px 3px;
 }
 
-/**canvas replace arrow(developing)*/
 input[type="button"] {
     -webkit-border-radius: 2px;
     -webkit-box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1);
@@ -23,6 +22,11 @@ input[type="button"] {
     margin-bottom: 0px;
     min-width: 4em;
     padding: 3px 12px 3px 12px;
+}
+
+input[type="checkbox"] {
+    position: relative;
+    top: 1px;
 }
 
 ul {
@@ -40,6 +44,44 @@ a {
 
 .commit {
     color: grey;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 5px 20px;
+}
+
+tr:only-child {
+    background-color: #eee;
+}
+
+tr:hover {
+    background-color: #eee;
+    cursor: default;
+}
+
+select {
+    -webkit-appearance: button;
+    -webkit-border-radius: 2px;
+    -webkit-box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    -webkit-padding-end: 5px;
+    -webkit-padding-start: 5px;
+    -webkit-user-select: none;
+    background-image: -webkit-linear-gradient(#fafafa, #f4f4f4 40%, #e5e5e5);
+    background-position: center right;
+    background-repeat: no-repeat;
+    border: 1px solid #AAA;
+    color: #555;
+    font-size: inherit;
+    margin: 0;
+    overflow: hidden;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 

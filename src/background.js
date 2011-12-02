@@ -4,16 +4,11 @@
     }
 
     localStorage.skin || (localStorage.skin = 'orange');
-    localStorage.hotKeySwitch || (localStorage.hotKeySwitch = '1');
-    localStorage.assistKey || (localStorage.assistKey = 'none');
-    localStorage.hotKeyHover || (localStorage.hotKeyHover = '{"ctrlKey":false,"altKey":true,"shiftKey":false,"metaKey":false,"keyCode":112}');
-    localStorage.hotKeyDrag || (localStorage.hotKeyDrag = '{"ctrlKey":false,"altKey":true,"shiftKey":false,"metaKey":false,"keyCode":113}');
     localStorage.mainDict || (localStorage.mainDict = 'powerword');
     localStorage.translate || (localStorage.translate = 'google');
-    localStorage.hoverCapture || (localStorage.hoverCapture = '0');
-    localStorage.dragCapture || (localStorage.dragCapture = '1');
-    localStorage.status || (localStorage.status = '1');
-    localStorage.speed || (localStorage.speed = '50');
+    localStorage.capture || (localStorage.capture = JSON.stringify([{status: false, assistKey: 'type', hotKey: ''}, {status: true, assistKey: 'type', hotKey: ''}, {status: true, assistKey: 'ctrlKey', hotKey: ''}]));
+
+    var portPool = {};
 
     function setPageActionIcon() {
         var ico, hoverCapture = localStorage.hoverCapture, dragCapture = localStorage.dragCapture;
@@ -35,64 +30,38 @@
 
     chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
         if (request.cmd === 'config') {
-            sendResponse(getConfig());
-        }
-    });
-
-    function getConfig() {
-        var params = {}, hotKeys = {}, dictsAvailable, dictsOrder, dicts = [], i, len;
-        params.ui = localStorage.ui;
-        params.skin = localStorage.skin;
-        params.hoverCapture = localStorage.hoverCapture === '1' ? true : false;
-        params.dragCapture = localStorage.dragCapture === '1' ? true : false;
-
-        if (localStorage.hotKeySwitch === '0') {
-            hotKeys = null;
-        }
-        else {
-            hotKeys = {
-                hover: JSON.parse(localStorage.hotKeyHover),
-                drag: JSON.parse(localStorage.hotKeyDrag)
-            };
-        }
-        params.hotKey = hotKeys;
-        params.speed = parseInt(localStorage.speed, 10);
-        params.assistKey = localStorage.assistKey === 'none' ? null : {"ctrlKey":localStorage.assistKey.indexOf('ctrl') > -1,"altKey":localStorage.assistKey.indexOf('alt') > -1};
-
-        return params;
-    }
-
-    chrome.extension.onConnect.addListener(function(port) {
-        if (port.name === 'dict') {
-            port.onMessage.addListener(function (msg, port) {
-                switch (msg.cmd) {
-                case 'setCaptureMode':
-                    setCaptureMode(msg, port);
-                    if (!port.tab) {
-                        chrome.tabs.getAllInWindow(null, function (tabs) {
-                            var request = {cmd: 'setCaptureMode', hoverCapture: localStorage.hoverCapture === '1', dragCapture: localStorage.dragCapture === '1'};
-                            for (var i = 0, len = tabs.length ; i < len ; i += 1) {
-                                chrome.tabs.sendRequest(tabs[i].id, request);
-                            }
-                        });
-                    }
-                    break;
-                case 'getCaptureMode':
-                    port.postMessage({cmd: 'setCaptureMode', hoverCapture: localStorage.hoverCapture === '1', dragCapture: localStorage.dragCapture === '1'});
-                    break;
-                case 'query':
-                    simpleQuery(msg.w, port, msg.dict, msg.type);
-                    break;
-                }
+            sendResponse({
+                skin: localStorage.skin,
+                capture: JSON.parse(localStorage.capture)
             });
         }
     });
 
-    function setCaptureMode(msg, port) {
-        localStorage.hoverCapture = msg.hoverCapture ? '1' : '0';
-        localStorage.dragCapture = msg.dragCapture ? '1' : '0';
-        port.postMessage(msg);
-    };
+    chrome.extension.onConnect.addListener(function(port) {
+        if (port.name === 'dict') {
+            if (port.tab) {
+                portPool[port.portId_] = port;
+                port.onMessage.addListener(function (msg, port) {
+                    simpleQuery(msg.w, port, msg.dict, msg.type);
+                });
+                port.onDisconnect.addListener(function () {
+                    delete portPool[port.portId_];
+                });
+            }
+            else {
+                port.onMessage.addListener(function (msg, port) {
+                    if (msg.cmd === 'query') {
+                        simpleQuery(msg.w, port, msg.dict, msg.type);
+                    }
+                    else {
+                        for (var key in portPool) {
+                            portPool[key].postMessage({cmd: 'setCaptureMode', capture: msg.capture});
+                        }
+                    }
+                });
+            }
+        }
+    });
 
     function simpleQuery(key, port, dict, type) {
         if (dict) {
