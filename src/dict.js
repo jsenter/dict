@@ -63,9 +63,13 @@
             }
         }, this));
 
+        this.assistKeyDefer = false;
+
         document.body.addEventListener('mouseover', proxy(this.hoverTrigger, this), false);
         document.body.addEventListener('click', proxy(this.dblclick, this), false);
         document.body.addEventListener('mousedown', proxy(this.dragStart, this), false);
+        document.body.addEventListener('mouseup', proxy(this.dragEnd, this), false);
+        document.body.addEventListener('keyup', proxy(this.keyPress, this), false);
     };
 
     Dict.prototype.setCapture = function () {
@@ -96,22 +100,25 @@
 
     Dict.prototype.dblclick = function (e) {
         var capture = this.capture[1];
-        if (capture.status && e[capture.assistKey]) {
+        if (capture.status) {
             if (this.ui) {
                 document.body.removeChild(this.ui);
                 this.ui = null;
             }
-            if (e.detail > 1) {this.captureText(e);}
+            if (e.detail > 1) {
+                if (e[capture.assistKey]) {this.captureText(e);}
+                else {this.assistKeyDefer = capture.assistKey;}
+            }
         }
     };
 
     Dict.prototype.dragStart = function (e) {
-        var capture = this.capture[2];
-        if (capture.status && e[capture.assistKey]) {
-            document.dictonmouseup = proxy(this.dragEnd, this);
-            document.addEventListener('mouseup', document.dictonmouseup, false);
+        //var capture = this.capture[2];
+        if (1) {
+            //document.dictonmouseup = proxy(this.dragEnd, this);
+            //document.addEventListener('mouseup', document.dictonmouseup, false);
             this.startPos = e.pageX;
-            this.endPos = null;
+            //this.endPos = e.pageX;
             this.onDrag = true;
             if (this.ui) {
                 document.body.removeChild(this.ui);
@@ -121,11 +128,19 @@
     };
 
     Dict.prototype.dragEnd = function (e) {
-        if (this.startPos !== e.pageX) {
-            this.captureText(e);
+        var capture = this.capture[2];
+        if (capture.status && this.startPos !== e.pageX) {
+            if (e[capture.assistKey]) {this.captureText(e);}
+            else {this.assistKeyDefer = capture.assistKey;}
         }
         this.onDrag = false;
-        document.removeEventListener('mouseup', document.dictonmouseup, false);
+        //document.removeEventListener('mouseup', document.dictonmouseup, false);
+    };
+
+    Dict.prototype.keyPress = function (e) {
+        if (e.keyCode === {ctrlKey: 17, altKey: 18, shiftKey: 16}[this.assistKeyDefer]) {
+            this.captureText(e);
+        }
     };
 
     Dict.prototype.hoverTrigger = function (e) {
@@ -201,6 +216,7 @@
 
     Dict.prototype.captureText = function (e) {
         this.node = null;
+        this.assistKeyDefer = null;
         this.text = window.getSelection().toString().trim();
         this.handle(e);
     };
