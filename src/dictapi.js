@@ -358,9 +358,13 @@
     extend(BaiduT, Query);
 
     BaiduT.prototype.ajaxLoad = function (client) {
-        var result = JSON.parse(client.responseText);
+        var result = JSON.parse(client.responseText), i, len, item, acceptation = '';
         if (result.data && result.data.length) {
-            this.res.tt = [{pos: '', acceptation: result.data[0].dst}];
+            for (i = 0, len = result.data.length ; i < len ; i += 1) {
+                item = result.data[i];
+                acceptation += item.dst;
+            }
+            this.res.tt = [{pos: '', acceptation: acceptation}];
         }
         this.superclass.ajaxLoad.call(this, client);
     }
@@ -376,11 +380,10 @@
     extend(YoudaoT, Query);
 
     YoudaoT.prototype.ajaxLoad = function (client) {
-        var result = JSON.parse(client.responseText).translateResult, i, len, acceptation;
+        var result = JSON.parse(client.responseText).translateResult, i, len, acceptation = '';
         if (result.length) {
-            acceptation = '';
-            for (i = 0, len = result[0].length ; i < len ; i += 1) {
-                acceptation += result[0][i].tgt
+            for (i = 0, len = result.length ; i < len ; i += 1) {
+                acceptation += result[i][0].tgt
             }
             this.res.tt = [{pos: '', acceptation: acceptation}];
         }
@@ -409,10 +412,14 @@
     extend(GoogleT, Query);
 
     GoogleT.prototype.ajaxLoad = function (client) {
-        var result = client.responseText;
+        var result = client.responseText, i, len, item, acceptation = '';
         result = eval('(' + result + ')');
         if (result[0]) {
-            this.res.tt = [{pos: '', acceptation: result[0][0][0]}];
+            for (i = 0, len = result[0].length ; i < len ; i += 1) {
+                item = result[0][i];
+                acceptation += item[0];
+            }
+            this.res.tt = [{pos: '', acceptation: acceptation}];
         }
         this.superclass.ajaxLoad.call(this, client);
     }
