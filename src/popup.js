@@ -15,14 +15,18 @@
     initWordList();
     
     function initWordList() {
-        var strWords = "";
-    	if( wordList != 'undefined' ) {
-    		var words = localStorage['notes'].split("|");
-    		for(var w in words)
-    		{
-    			var word = words[w].trim();
-    			strWords += "<a href=\"#\">"+word+"</a><br>"
-    		}
+    	var strWords = "";
+    	
+    	if ( localStorage['notes'] == 'undefined' )
+    	{
+    		localStorage['notes'] = "";
+    	}
+    	 
+    	var words = localStorage['notes'].split("|");
+    	for(var w in words)
+    	{
+    		var word = words[w].trim();
+    		strWords += "<a href=\"#\">"+word+"</a><br>"
     	}
     	
     	wordList.innerHTML = strWords;
