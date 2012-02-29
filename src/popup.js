@@ -3,11 +3,30 @@
     searchbox = document.querySelector('textarea'),
     dict = document.querySelector('nav'),
     content = document.querySelector('section'),
+    wordList = document.querySelector('notes');
     btnCapure = document.querySelectorAll('footer a'),
+    btnAddToNotes = document.getElementById('addToNotes');
+    btnClearNotes = document.getElementById('clearNotes');
     setting = JSON.parse(localStorage.capture),
     rSingleWord = /^[a-z]+([-'][a-z]+)*$/i,
     dictCurrent = localStorage.mainDict,
     translateCurrent = localStorage.translate;
+    
+    initWordList();
+    
+    function initWordList() {
+        var strWords = "";
+    	if( wordList != 'undefined' ) {
+    		var words = localStorage['notes'].split("|");
+    		for(var w in words)
+    		{
+    			var word = words[w].trim();
+    			strWords += "<a href=\"#\">"+word+"</a><br>"
+    		}
+    	}
+    	
+    	wordList.innerHTML = strWords;
+    }
 
     port.onMessage.addListener(function (msg) {
         if (msg.key === searchbox.value.trim()) {
@@ -145,6 +164,16 @@
     delegate(content, 'img', 'click', function () {
         this.nextSibling.play();
     });
+    
+    delegate(wordList, 'a', 'click', function(e) {
+    	var target = this;
+    	
+    	console.log(target.text);
+    	
+    	e.preventDefault();
+    	searchbox.value = target.text;
+    	//port.postMessage({cmd: 'query', w: target.text, dict: dict.querySelector('.active').rel, type: dict.querySelector('.active').parentNode.id});
+    });
 
     function delegate(node, selector, type, handler) {
         node.delegate || (node.delegate = {});
@@ -170,5 +199,19 @@
             delegate.nodeList.push(node);
         }
     }
+    
+    btnAddToNotes.addEventListener('click', function(e){
+		var newWord = searchbox.value.trim();
+		localStorage['notes'] = newWord + "|" + localStorage['notes'];
+		
+		initWordList();
+    });
+    
+    btnClearNotes.addEventListener('click', function(e) {
+    	console.log('clear notes');
+    	
+    	localStorage['notes'] = "";
+    	initWordList();
+    });
 
 })(this, this.document);
