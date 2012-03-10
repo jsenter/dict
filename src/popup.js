@@ -17,16 +17,13 @@
     function initWordList() {
     	var strWords = "";
     	
-    	if ( !localStorage.notes )
-    	{
-    		localStorage.notes = "生词本";
-    	}
-
-    	var words = localStorage.notes.split("|");
-    	for(var w in words)
-    	{
-    		var word = words[w].trim();
-    		strWords += "<a href=\"#\">"+word+"</a><br>"
+    	if( typeof(localStorage['notes']) != "undefined" ) {    	 
+    		var words = localStorage['notes'].split("|");
+    		for(var w in words)
+    		{
+    			var word = words[w].trim();
+    			strWords += "<a href=\"#\">"+word+"</a><br>"
+    		}
     	}
     	
     	wordList.innerHTML = strWords;
@@ -206,7 +203,7 @@
     
     btnAddToNotes.addEventListener('click', function(e){
 		var newWord = searchbox.value.trim();
-		localStorage.notes = newWord + "|" + localStorage.notes;
+		localStorage['notes'] = newWord + "|" + localStorage['notes'];
 		
 		initWordList();
     });
@@ -214,7 +211,7 @@
     btnClearNotes.addEventListener('click', function(e) {
     	console.log('clear notes');
     	
-    	localStorage.notes = "";
+    	localStorage['notes'] = "";
     	initWordList();
     });
 
